@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity, FlatList, ScrollView, Dimensions } from 'react-native';
+import { View, StyleSheet, Text, Image, TouchableOpacity, FlatList, ScrollView, Dimensions, Modal, Alert } from 'react-native';
 import { COLORS, FONTS } from '../../constants/theme';
+import { FontAwesome } from '@expo/vector-icons';
+import ConnectWallet from '../components/ConnectWallet';
 
 const MOCK_USER = {
   name: 'Jane Doe',
@@ -30,6 +32,7 @@ const postImageSize = (screenWidth - gridPadding - 16) / numColumns; // 16 is to
 export default function ProfileScreen() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
+  const [menuVisible, setMenuVisible] = useState(false);
 
   // Placeholder for Solana wallet connect
   const connectWallet = () => {
@@ -38,52 +41,96 @@ export default function ProfileScreen() {
     setWalletAddress('5D4g...XyZ1');
   };
 
-  const renderPost = ({ item }) => (
+  const renderPost = ({ item }: { item: { id: string; image: string } }) => (
     <Image source={{ uri: item.image }} style={styles.postImage} />
   );
 
+  const handleMenuOption = (option: string) => {
+    setMenuVisible(false);
+    // Replace with navigation or logic as needed
+    Alert.alert(option, `You selected: ${option}`);
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.header}>
-        <Image source={{ uri: MOCK_USER.avatar }} style={styles.avatar} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{MOCK_USER.name}</Text>
-          <Text style={styles.username}>@{MOCK_USER.username}</Text>
-          <Text style={styles.bio}>{MOCK_USER.bio}</Text>
-        </View>
+    <View style={styles.container}>
+      {/* Top row: Hamburger and Profile title */}
+      <View style={styles.topRow}>
+        <TouchableOpacity style={styles.hamburger} onPress={() => setMenuVisible(true)}>
+          <FontAwesome name="bars" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
+        <Text style={styles.profileTitle}>Profile</Text>
+        <View style={{ width: 36 }} /> {/* Spacer for symmetry */}
       </View>
-      <TouchableOpacity style={styles.walletButton} onPress={connectWallet}>
-        <Text style={styles.walletButtonText}>
-          {walletConnected ? 'Wallet Connected' : 'Connect Solana Wallet'}
-        </Text>
-      </TouchableOpacity>
-      {walletConnected && (
-        <View style={styles.walletInfo}>
-          <Text style={styles.walletLabel}>Wallet Address:</Text>
-          <Text style={styles.walletAddress}>{walletAddress}</Text>
-          <Text style={styles.walletLabel}>Portfolio:</Text>
-          <Text style={styles.walletValue}>${MOCK_USER.portfolio.totalValue}</Text>
-          <View style={styles.tokenRow}>
-            {MOCK_USER.portfolio.tokens.map((t, idx) => (
-              <Text key={idx} style={styles.token}>
-                {t.amount} {t.symbol}
-              </Text>
-            ))}
+      {/* Hamburger menu modal */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
+          <View style={styles.menuContent}>
+            <Text style={styles.menuTitle}>Menu</Text>
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuOption('Finances')}>
+              <FontAwesome name="line-chart" size={20} color={COLORS.primary} style={{ marginRight: 12 }} />
+              <Text style={styles.menuItemText}>Finances</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuOption('Settings')}>
+              <FontAwesome name="cog" size={20} color={COLORS.primary} style={{ marginRight: 12 }} />
+              <Text style={styles.menuItemText}>Settings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuOption('Wallet Address')}>
+              <FontAwesome name="wallet" size={20} color={COLORS.primary} style={{ marginRight: 12 }} />
+              <Text style={styles.menuItemText}>Wallet Address</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuClose} onPress={() => setMenuVisible(false)}>
+              <Text style={styles.menuCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInnerContent}>
+        <View style={styles.header}>
+          <Image source={{ uri: MOCK_USER.avatar }} style={styles.avatar} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{MOCK_USER.name}</Text>
+            <Text style={styles.username}>@{MOCK_USER.username}</Text>
+            <Text style={styles.bio}>{MOCK_USER.bio}</Text>
           </View>
         </View>
-      )}
-      <Text style={styles.sectionTitle}>Posts</Text>
-      <View style={styles.postsGridWrapper}>
-        <FlatList
-          data={MOCK_USER.posts}
-          renderItem={renderPost}
-          keyExtractor={item => item.id}
-          numColumns={numColumns}
-          scrollEnabled={false}
-          contentContainerStyle={styles.postsGrid}
-        />
-      </View>
-    </ScrollView>
+        <TouchableOpacity style={styles.walletButton} onPress={connectWallet}>
+          <Text style={styles.walletButtonText}>
+            {walletConnected ? 'Wallet Connected' : 'Connect Solana Wallet'}
+          </Text>
+        </TouchableOpacity>
+        {walletConnected && (
+          <View style={styles.walletInfo}>
+            <Text style={styles.walletLabel}>Wallet Address:</Text>
+            <Text style={styles.walletAddress}>{walletAddress}</Text>
+            <Text style={styles.walletLabel}>Portfolio:</Text>
+            <Text style={styles.walletValue}>${MOCK_USER.portfolio.totalValue}</Text>
+            <View style={styles.tokenRow}>
+              {MOCK_USER.portfolio.tokens.map((t, idx) => (
+                <Text key={idx} style={styles.token}>
+                  {t.amount} {t.symbol}
+                </Text>
+              ))}
+            </View>
+          </View>
+        )}
+        <Text style={styles.sectionTitle}>Posts</Text>
+        <View style={styles.postsGridWrapper}>
+          <FlatList
+            data={MOCK_USER.posts}
+            renderItem={renderPost}
+            keyExtractor={item => item.id}
+            numColumns={numColumns}
+            scrollEnabled={false}
+            contentContainerStyle={styles.postsGrid}
+          />
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -92,7 +139,77 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingTop: 18,
+    marginBottom: 8,
+  },
+  profileTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: 22,
+    color: COLORS.text,
+    textAlign: 'center',
+    flex: 1,
+  },
+  hamburger: {
+    backgroundColor: COLORS.white,
+    borderRadius: 10,
+    padding: 6,
+    elevation: 3,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+  },
+  menuContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    marginTop: 48,
+    marginLeft: 16,
+    padding: 18,
+    minWidth: 200,
+    elevation: 5,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  menuTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: 18,
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  menuItemText: {
+    fontFamily: FONTS.medium,
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  menuClose: {
+    marginTop: 16,
+    alignSelf: 'flex-end',
+  },
+  menuCloseText: {
+    color: COLORS.primary,
+    fontFamily: FONTS.bold,
+    fontSize: 15,
+  },
   scrollContent: {
+    flex: 1,
+  },
+  scrollInnerContent: {
     padding: 16,
     paddingBottom: 32,
   },
@@ -100,6 +217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 18,
+    marginTop: 24,
   },
   avatar: {
     width: 70,

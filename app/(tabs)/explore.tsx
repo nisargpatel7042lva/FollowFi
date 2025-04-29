@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, FlatList, TextInput, Image, TouchableOpacity, Text, Dimensions, ScrollView } from 'react-native';
-import { COLORS, FONTS } from '../../constants/theme';
+import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
 
 const MOCK_EXPLORE_POSTS = [
   { id: '1', image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb' },
