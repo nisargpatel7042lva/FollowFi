@@ -1,45 +1,58 @@
 import React from 'react';
-import { View, StyleSheet, FlatList, TextInput, Image, TouchableOpacity, Text, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, Image, TouchableOpacity, Text, ScrollView } from 'react-native';
 import { COLORS, FONTS } from '../../constants/theme';
+import { useRouter } from 'expo-router';
 
-const MOCK_EXPLORE_POSTS = [
-  { id: '1', image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb' },
-  { id: '2', image: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca' },
-  { id: '3', image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308' },
-  { id: '4', image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429' },
-  { id: '5', image: 'https://images.unsplash.com/photo-1465101178521-c1a9136a3b99' },
-  { id: '6', image: 'https://images.unsplash.com/photo-1519985176271-adb1088fa94c' },
-  { id: '7', image: 'https://images.unsplash.com/photo-1508672019048-805c876b67e2' },
-  { id: '8', image: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca' },
-  { id: '9', image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308' },
+const MOCK_MESSAGES = [
+  {
+    id: '1',
+    name: 'Alice',
+    avatar: 'https://randomuser.me/api/portraits/women/10.jpg',
+    lastMessage: 'See you soon! 😊',
+    time: '2m ago',
+  },
+  {
+    id: '2',
+    name: 'Bob',
+    avatar: 'https://randomuser.me/api/portraits/men/11.jpg',
+    lastMessage: "Let's catch up tomorrow.",
+    time: '10m ago',
+  },
+  {
+    id: '3',
+    name: 'Charlie',
+    avatar: 'https://randomuser.me/api/portraits/men/12.jpg',
+    lastMessage: 'Sent the docs.',
+    time: '1h ago',
+  },
 ];
 
-const numColumns = 3;
-const size = Dimensions.get('window').width / numColumns - 16;
+export default function MessagesScreen() {
+  const router = useRouter();
 
-export default function SearchScreen() {
-  const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.imageWrapper} onPress={() => {}}>
-      <Image source={{ uri: item.image }} style={styles.image} />
+  const renderMessageItem = ({ item }: { item: { id: string; name: string; avatar: string; lastMessage: string; time: string } }) => (
+    <TouchableOpacity style={styles.messageRow} onPress={() => router.push(`./messages/${item.id}`)}>
+      <Image source={{ uri: item.avatar }} style={styles.messageAvatar} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.messageName}>{item.name}</Text>
+        <Text style={styles.messageText} numberOfLines={1}>{item.lastMessage}</Text>
+      </View>
+      <Text style={styles.messageTime}>{item.time}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Search"
-        placeholderTextColor={COLORS.textLight}
-      />
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
+      <Text style={styles.sectionTitle}>Messages</Text>
       <FlatList
-        data={MOCK_EXPLORE_POSTS}
-        renderItem={renderItem}
+        data={MOCK_MESSAGES}
+        renderItem={renderMessageItem}
         keyExtractor={item => item.id}
-        numColumns={numColumns}
-        contentContainerStyle={styles.grid}
+        contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={false}
       />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -49,38 +62,52 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     paddingTop: 8,
   },
-  searchBar: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
+  sectionTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: 22,
+    color: COLORS.text,
+    marginLeft: 16,
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  messagesList: {
+    paddingHorizontal: 0,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    fontFamily: FONTS.regular,
+    paddingVertical: 12,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    marginHorizontal: 8,
+    marginBottom: 10,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  messageAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+  },
+  messageName: {
+    fontFamily: FONTS.medium,
     fontSize: 16,
     color: COLORS.text,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 1,
   },
-  grid: {
-    paddingHorizontal: 8,
+  messageText: {
+    fontFamily: FONTS.regular,
+    fontSize: 14,
+    color: COLORS.textLight,
+    marginTop: 2,
   },
-  imageWrapper: {
-    flex: 1,
-    margin: 4,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: COLORS.white,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  image: {
-    width: size,
-    height: size,
-    resizeMode: 'cover',
+  messageTime: {
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    color: COLORS.textLight,
+    marginLeft: 8,
   },
 }); 

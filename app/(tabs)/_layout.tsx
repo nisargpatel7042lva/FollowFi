@@ -38,9 +38,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Search',
+          title: 'Messages',
           tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="search" size={size} color={color} />
+            <FontAwesome name="comments" size={size} color={color} />
           ),
         }}
       />
