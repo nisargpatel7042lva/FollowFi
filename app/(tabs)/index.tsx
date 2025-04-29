@@ -1,16 +1,41 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, Text, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, StyleSheet, FlatList, RefreshControl, Text, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Animated, TouchableWithoutFeedback } from 'react-native';
 import { COLORS, SHADOWS } from '../../constants/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesome } from '@expo/vector-icons';
 
 // Temporary mock data for stories
+const DEMO_STORY_IMAGES = [
+  [
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
+    'https://images.unsplash.com/photo-1519125323398-675f0ddb6308',
+    'https://images.unsplash.com/photo-1465101046530-73398c7f28ca',
+  ],
+  [
+    'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429',
+    'https://images.unsplash.com/photo-1465101178521-c1a9136a3b99',
+  ],
+  [
+    'https://images.unsplash.com/photo-1519985176271-adb1088fa94c',
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
+  ],
+  [
+    'https://images.unsplash.com/photo-1519125323398-675f0ddb6308',
+    'https://images.unsplash.com/photo-1465101046530-73398c7f28ca',
+    'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429',
+  ],
+  [
+    'https://images.unsplash.com/photo-1465101178521-c1a9136a3b99',
+    'https://images.unsplash.com/photo-1519985176271-adb1088fa94c',
+  ],
+];
+
 const MOCK_STORIES = [
-  { id: '1', avatar: 'https://randomuser.me/api/portraits/men/1.jpg', name: 'You', isActive: true },
-  { id: '2', avatar: 'https://randomuser.me/api/portraits/women/2.jpg', name: 'Mark', isActive: false },
-  { id: '3', avatar: 'https://randomuser.me/api/portraits/men/3.jpg', name: 'Alexandria', isActive: false },
-  { id: '4', avatar: 'https://randomuser.me/api/portraits/women/4.jpg', name: 'Neora', isActive: true },
-  { id: '5', avatar: 'https://randomuser.me/api/portraits/men/5.jpg', name: 'Maximilian', isActive: false },
+  { id: '1', avatar: 'https://randomuser.me/api/portraits/men/1.jpg', name: 'You', isActive: true, images: DEMO_STORY_IMAGES[0] },
+  { id: '2', avatar: 'https://randomuser.me/api/portraits/women/2.jpg', name: 'Mark', isActive: false, images: DEMO_STORY_IMAGES[1] },
+  { id: '3', avatar: 'https://randomuser.me/api/portraits/men/3.jpg', name: 'Alexandria', isActive: false, images: DEMO_STORY_IMAGES[2] },
+  { id: '4', avatar: 'https://randomuser.me/api/portraits/women/4.jpg', name: 'Neora', isActive: true, images: DEMO_STORY_IMAGES[3] },
+  { id: '5', avatar: 'https://randomuser.me/api/portraits/men/5.jpg', name: 'Maximilian', isActive: false, images: DEMO_STORY_IMAGES[4] },
 ];
 
 // Temporary mock data for posts (with images)
@@ -82,6 +107,62 @@ export default function FeedScreen() {
   const [posts, setPosts] = useState(MOCK_POSTS);
   const [commentModal, setCommentModal] = useState({ visible: false, postId: null });
   const [commentText, setCommentText] = useState('');
+  // Story modal state
+  const [storyModal, setStoryModal] = useState({ visible: false, story: null, index: 0 });
+
+  // Heart animation state: { [postId]: { visible: bool, scale: Animated.Value } }
+  const heartAnimations = useRef({}).current;
+
+  // Helper to initialize animation state for a post
+  const ensureHeartAnimation = (postId) => {
+    if (!heartAnimations[postId]) {
+      heartAnimations[postId] = {
+        visible: false,
+        scale: new Animated.Value(0),
+      };
+    }
+    return heartAnimations[postId];
+  };
+
+  // Double-tap logic
+  const lastTapRef = useRef({});
+  const handleDoubleTap = (postId) => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (lastTapRef.current[postId] && now - lastTapRef.current[postId] < DOUBLE_TAP_DELAY) {
+      // Double tap detected
+      triggerHeartAnimation(postId);
+      handleLike(postId);
+    }
+    lastTapRef.current[postId] = now;
+  };
+
+  // Heart animation trigger
+  const triggerHeartAnimation = (postId) => {
+    const anim = ensureHeartAnimation(postId);
+    anim.visible = true;
+    anim.scale.setValue(0.3);
+    Animated.spring(anim.scale, {
+      toValue: 1.2,
+      friction: 3,
+      useNativeDriver: true,
+    }).start(() => {
+      setTimeout(() => {
+        Animated.timing(anim.scale, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => {
+          anim.visible = false;
+        });
+      }, 600);
+    });
+  };
+
+  // --- Story Modal handler ---
+  const handleStoryPress = (story) => {
+    setStoryModal({ visible: true, story, index: 0 });
+  };
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
@@ -131,30 +212,75 @@ export default function FeedScreen() {
     setCommentText('');
   };
 
-  const renderPost = ({ item }) => (
-    <View style={styles.postCardWrapper}>
-      <View style={styles.postHeader}>
-        <TouchableOpacity style={styles.userInfo} onPress={() => handleProfile(item.username)}>
-          <Image source={{ uri: item.profilePicture }} style={styles.avatar} />
-          <View>
-            <Text style={styles.username}>{item.username}</Text>
-            <Text style={styles.timestamp}>{item.timestamp}</Text>
-          </View>
-        </TouchableOpacity>
+  // Add these handlers inside FeedScreen:
+  const handleNextStoryImage = () => {
+    if (!storyModal.story) return;
+    if (storyModal.index < storyModal.story.images.length - 1) {
+      setStoryModal((prev) => ({ ...prev, index: prev.index + 1 }));
+    } else {
+      setStoryModal({ visible: false, story: null, index: 0 });
+    }
+  };
+
+  const handlePrevStoryImage = () => {
+    if (!storyModal.story) return;
+    if (storyModal.index > 0) {
+      setStoryModal((prev) => ({ ...prev, index: prev.index - 1 }));
+    }
+  };
+
+  // --- Render Post with double-tap and heart animation ---
+  const renderPost = ({ item }) => {
+    const anim = ensureHeartAnimation(item.id);
+    return (
+      <View style={styles.postCardWrapper}>
+        <View style={styles.postHeader}>
+          <TouchableOpacity style={styles.userInfo} onPress={() => handleProfile(item.username)}>
+            <Image source={{ uri: item.profilePicture }} style={styles.avatar} />
+            <View>
+              <Text style={styles.username}>{item.username}</Text>
+              <Text style={styles.timestamp}>{item.timestamp}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+        {item.image && (
+          <TouchableWithoutFeedback onPress={() => handleDoubleTap(item.id)}>
+            <View>
+              <Image source={{ uri: item.image }} style={styles.postImage} />
+              {anim.visible && (
+                <Animated.View
+                  style={[
+                    styles.heartOverlay,
+                    { transform: [{ scale: anim.scale }] },
+                  ]}
+                  pointerEvents="none"
+                >
+                  <FontAwesome name="heart" size={90} color="rgba(255,0,80,0.85)" />
+                </Animated.View>
+              )}
+            </View>
+          </TouchableWithoutFeedback>
+        )}
+        <Text style={styles.content}>{item.content}</Text>
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+            <FontAwesome name={item.liked ? 'heart' : 'heart-o'} size={22} color={item.liked ? 'red' : COLORS.text} />
+            <Text style={styles.actionText}>{item.likes}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleComment(item.id)}>
+            <FontAwesome name="comment-o" size={22} color={COLORS.text} />
+            <Text style={styles.actionText}>{item.comments}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      {item.image && <Image source={{ uri: item.image }} style={styles.postImage} />}
-      <Text style={styles.content}>{item.content}</Text>
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
-          <FontAwesome name={item.liked ? 'heart' : 'heart-o'} size={22} color={item.liked ? 'red' : COLORS.text} />
-          <Text style={styles.actionText}>{item.likes}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => handleComment(item.id)}>
-          <FontAwesome name="comment-o" size={22} color={COLORS.text} />
-          <Text style={styles.actionText}>{item.comments}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    );
+  };
+
+  // --- Render StoryBubble with onPress ---
+  const renderStoryBubble = ({ item }) => (
+    <TouchableOpacity onPress={() => handleStoryPress(item)} activeOpacity={0.7}>
+      <StoryBubble {...item} />
+    </TouchableOpacity>
   );
 
   return (
@@ -165,7 +291,7 @@ export default function FeedScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => <StoryBubble {...item} />}
+        renderItem={renderStoryBubble}
         style={styles.stories}
         contentContainerStyle={{ paddingLeft: 12, paddingVertical: 12 }}
       />
@@ -210,6 +336,54 @@ export default function FeedScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+      {/* Story Modal */}
+      <Modal
+        visible={storyModal.visible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setStoryModal({ visible: false, story: null, index: 0 })}
+      >
+        <View style={styles.storyModalOverlay}>
+          {storyModal.story && (
+            <TouchableWithoutFeedback onPress={handleNextStoryImage}>
+              <View style={styles.storyModalContent}>
+                {/* Progress bar */}
+                <View style={styles.storyProgressBarContainer}>
+                  {storyModal.story.images.map((img, idx) => (
+                    <View
+                      key={idx}
+                      style={[
+                        styles.storyProgressBar,
+                        idx <= storyModal.index
+                          ? styles.storyProgressBarActive
+                          : styles.storyProgressBarInactive,
+                      ]}
+                    />
+                  ))}
+                </View>
+                {/* Story image */}
+                <Image
+                  source={{ uri: storyModal.story.images[storyModal.index] }}
+                  style={styles.storyModalImage}
+                  resizeMode="cover"
+                />
+                {/* Avatar and name */}
+                <View style={styles.storyModalHeader}>
+                  <Image source={{ uri: storyModal.story.avatar }} style={styles.storyModalAvatarSmall} />
+                  <Text style={styles.storyModalName}>{storyModal.story.name}</Text>
+                </View>
+                {/* Close button */}
+                <TouchableOpacity
+                  style={styles.storyModalClose}
+                  onPress={() => setStoryModal({ visible: false, story: null, index: 0 })}
+                >
+                  <Text style={{ color: COLORS.primary, fontWeight: 'bold', fontSize: 18 }}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          )}
+        </View>
       </Modal>
     </View>
   );
@@ -321,5 +495,76 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.text,
     backgroundColor: COLORS.background,
+  },
+  heartOverlay: {
+    position: 'absolute',
+    top: '35%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  storyModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyModalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    padding: 16,
+    alignItems: 'center',
+    width: 340,
+    maxWidth: '95%',
+  },
+  storyModalImage: {
+    width: 320,
+    height: 520,
+    borderRadius: 18,
+    marginBottom: 18,
+    backgroundColor: '#eee',
+    maxWidth: '100%',
+  },
+  storyModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  storyModalAvatarSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+  },
+  storyProgressBarContainer: {
+    flexDirection: 'row',
+    width: 320,
+    marginBottom: 8,
+    marginTop: 4,
+    maxWidth: '100%',
+  },
+  storyProgressBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    marginHorizontal: 2,
+    backgroundColor: '#ccc',
+  },
+  storyProgressBarActive: {
+    backgroundColor: COLORS.primary,
+  },
+  storyProgressBarInactive: {
+    backgroundColor: '#eee',
+  },
+  storyModalName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 18,
+  },
+  storyModalClose: {
+    marginTop: 10,
+    padding: 8,
   },
 });
