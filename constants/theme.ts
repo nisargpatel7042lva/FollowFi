@@ -1,10 +1,10 @@
 export const COLORS = {
-  primary: '#3B82F6',    // Blue - Trust and reliability
-  secondary: '#8B5CF6',  // Purple - Creativity and innovation
+  primary: '#B983FF',    // Light purple accent
+  secondary: '#A084E8',  // Slightly darker purple
   success: '#22C55E',    // Green - Growth and prosperity
-  background: '#FFFFFF',
-  text: '#1F2937',
-  textLight: '#6B7280',
+  background: '#F3E8FF', // Light purple background
+  text: '#3D246C',       // Deep purple for text
+  textLight: '#7C73C0',  // Lighter purple for secondary text
   border: '#E5E7EB',
   error: '#EF4444',
   warning: '#F59E0B',
@@ -30,23 +30,23 @@ export const SIZES = {
 
 export const SHADOWS = {
   small: {
-    shadowColor: '#000',
+    shadowColor: '#B983FF',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
     elevation: 2,
   },
   medium: {
-    shadowColor: '#000',
+    shadowColor: '#B983FF',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.30,
-    shadowRadius: 4.65,
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
     elevation: 4,
   },
 };
