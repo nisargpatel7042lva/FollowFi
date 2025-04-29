@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity, FlatList } from 'react-native';
+import { View, StyleSheet, Text, Image, TouchableOpacity, FlatList, ScrollView, Dimensions } from 'react-native';
 import { COLORS, FONTS } from '../../constants/theme';
 
 const MOCK_USER = {
@@ -22,6 +22,11 @@ const MOCK_USER = {
   },
 };
 
+const numColumns = 2;
+const screenWidth = Dimensions.get('window').width;
+const gridPadding = 16 * 2; // left + right
+const postImageSize = (screenWidth - gridPadding - 16) / numColumns; // 16 is total margin between images
+
 export default function ProfileScreen() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
@@ -38,7 +43,7 @@ export default function ProfileScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
         <Image source={{ uri: MOCK_USER.avatar }} style={styles.avatar} />
         <View style={{ flex: 1 }}>
@@ -68,15 +73,17 @@ export default function ProfileScreen() {
         </View>
       )}
       <Text style={styles.sectionTitle}>Posts</Text>
-      <FlatList
-        data={MOCK_USER.posts}
-        renderItem={renderPost}
-        keyExtractor={item => item.id}
-        numColumns={2}
-        contentContainerStyle={styles.postsGrid}
-        showsVerticalScrollIndicator={false}
-      />
-    </View>
+      <View style={styles.postsGridWrapper}>
+        <FlatList
+          data={MOCK_USER.posts}
+          renderItem={renderPost}
+          keyExtractor={item => item.id}
+          numColumns={numColumns}
+          scrollEnabled={false}
+          contentContainerStyle={styles.postsGrid}
+        />
+      </View>
+    </ScrollView>
   );
 }
 
@@ -84,7 +91,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollContent: {
     padding: 16,
+    paddingBottom: 32,
   },
   header: {
     flexDirection: 'row',
@@ -174,12 +184,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 8,
   },
+  postsGridWrapper: {
+    flex: 1,
+  },
   postsGrid: {
-    gap: 8,
+    flexGrow: 1,
+    justifyContent: 'flex-start',
   },
   postImage: {
-    width: '48%',
-    aspectRatio: 1,
+    width: postImageSize,
+    height: postImageSize,
     borderRadius: 12,
     margin: 4,
     backgroundColor: COLORS.white,
