@@ -6,6 +6,7 @@ import {
   Platform,
   ScrollView,
   Text,
+  Image,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,6 +49,11 @@ export default function SignIn() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
+          <Image
+            source={require('../../assets/images/app-logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Sign in to continue</Text>
         </View>
@@ -81,7 +87,7 @@ export default function SignIn() {
             style={styles.button}
           />
 
-          <Link href="/reset-password" style={styles.forgotPassword}>
+          <Link href="./reset-password" style={styles.forgotPassword}>
             Forgot Password?
           </Link>
 
@@ -108,6 +114,13 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: SIZES.xl,
+    alignItems: 'center',
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    marginBottom: 24,
+    borderRadius: 20,
   },
   title: {
     fontFamily: FONTS.bold,

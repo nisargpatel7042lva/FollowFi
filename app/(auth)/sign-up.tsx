@@ -6,6 +6,7 @@ import {
   Platform,
   ScrollView,
   Text,
+  Image,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -66,6 +67,11 @@ export default function SignUp() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
+          <Image
+            source={require('../../assets/images/app-logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join FollowFi today</Text>
         </View>
@@ -138,6 +144,13 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: SIZES.xl,
+    alignItems: 'center',
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    marginBottom: 24,
+    borderRadius: 20,
   },
   title: {
     fontFamily: FONTS.bold,
