@@ -30,8 +30,8 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Feed',
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="home" size={size} color={color} />
+          tabBarIcon: ({ color, size,focused }) => (
+            <FontAwesome name="home" size={focused ? size +4 : size} color={color} />
           ),
         }}
       />
@@ -39,8 +39,8 @@ export default function TabLayout() {
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="search" size={size} color={color} />
+          tabBarIcon: ({ color, size,focused }) => (
+            <FontAwesome name="search" size={focused ? size +4 : size} color={color} />
           ),
         }}
       />
@@ -48,8 +48,8 @@ export default function TabLayout() {
         name="create"
         options={{
           title: 'Post',
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="plus-square-o" size={size} color={color} />
+          tabBarIcon: ({ color, size ,focused}) => (
+            <FontAwesome name="plus-square-o" size={focused ? size +4 : size} color={color} />
           ),
         }}
       />
@@ -57,8 +57,8 @@ export default function TabLayout() {
         name="finance"
         options={{
           title: 'Finance',
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="line-chart" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused}) => (
+            <FontAwesome name="line-chart" size={focused ? size +4 : size} color={color} />
           ),
         }}
       />
@@ -66,11 +66,12 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="user" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused}) => (
+            <FontAwesome name="user" size={focused ? size +4 : size} color={color} />
           ),
         }}
       />
+      
     </Tabs>
   );
 }

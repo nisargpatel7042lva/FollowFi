@@ -44,6 +44,7 @@ const Post: React.FC<PostProps> = ({
         </TouchableOpacity>
       </View>
 
+
       <Text style={styles.content}>{content}</Text>
 
       <View style={styles.actions}>
