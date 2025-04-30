@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Image, TextInput, Platform, ScrollView, KeyboardAvoidingView, Modal } from 'react-native';
-import { COLORS, FONTS } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { FONTS } from '../../constants/theme';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { EventRegister } from 'react-native-event-listeners';
 
 export default function CreatePostScreen() {
-  const [image, setImage] = useState(null);
+  const { colors } = useTheme();
+  const router = useRouter();
+  const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -32,19 +37,139 @@ export default function CreatePostScreen() {
   };
 
   const handlePost = () => {
-    // TODO: Implement post upload logic
+    if (!caption.trim() && !image) return;
+    // Create a new post object
+    const newPost = {
+      id: String(Date.now()),
+      username: 'me', // Replace with actual username if available
+      content: caption,
+      likes: 0,
+      comments: 0,
+      timestamp: 'Just now',
+      profilePicture: 'https://randomuser.me/api/portraits/lego/1.jpg', // Replace with actual user avatar
+      image: image || '',
+      commentList: [],
+      liked: false,
+    };
+    // Emit event to update feed
+    EventRegister.emit('newPost', newPost);
     setShowSuccess(true);
-    setImage(null);
-    setCaption('');
+    setTimeout(() => {
+      setShowSuccess(false);
+      router.replace('/(tabs)'); // Go to feed
+    }, 1200);
   };
+
+  const styles = StyleSheet.create({
+    scrollContent: {
+      padding: 20,
+      paddingBottom: 40,
+    },
+    title: {
+      fontFamily: FONTS.bold,
+      fontSize: 22,
+      color: colors.text,
+      marginBottom: 18,
+      textAlign: 'center',
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 18,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      marginHorizontal: 2,
+      flex: 1,
+      alignItems: 'center',
+    },
+    buttonText: {
+      color: colors.white,
+      fontFamily: FONTS.medium,
+      fontSize: 14,
+    },
+    imagePreview: {
+      width: '100%',
+      height: 220,
+      borderRadius: 16,
+      marginBottom: 16,
+      marginTop: 8,
+      backgroundColor: colors.card,
+    },
+    captionInput: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 12,
+      fontFamily: FONTS.regular,
+      fontSize: 15,
+      color: colors.text,
+      marginBottom: 18,
+      minHeight: 48,
+    },
+    postButton: {
+      backgroundColor: colors.secondary,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    postButtonText: {
+      color: colors.white,
+      fontFamily: FONTS.bold,
+      fontSize: 16,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.25)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 28,
+      alignItems: 'center',
+      shadowColor: colors.primary,
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    modalTitle: {
+      fontWeight: 'bold',
+      fontSize: 20,
+      color: colors.text,
+      marginBottom: 8,
+    },
+    modalText: {
+      color: colors.text,
+      fontSize: 16,
+      marginBottom: 18,
+      textAlign: 'center',
+    },
+    modalButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 28,
+      marginTop: 8,
+    },
+    modalButtonText: {
+      color: colors.white,
+      fontFamily: FONTS.bold,
+      fontSize: 16,
+    },
+  });
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={80}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" style={{ backgroundColor: colors.background }}>
         <Text style={styles.title}>Create a Post</Text>
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.button} onPress={pickImage}>
@@ -63,7 +188,7 @@ export default function CreatePostScreen() {
         <TextInput
           style={styles.captionInput}
           placeholder="Write a caption..."
-          placeholderTextColor={COLORS.textLight}
+          placeholderTextColor={colors.textLight}
           value={caption}
           onChangeText={setCaption}
           multiline
@@ -90,107 +215,4 @@ export default function CreatePostScreen() {
       </Modal>
     </KeyboardAvoidingView>
   );
-}
-
-const styles = StyleSheet.create({
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  title: {
-    fontFamily: FONTS.bold,
-    fontSize: 22,
-    color: COLORS.text,
-    marginBottom: 18,
-    textAlign: 'center',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginHorizontal: 2,
-    flex: 1,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: COLORS.white,
-    fontFamily: FONTS.medium,
-    fontSize: 14,
-  },
-  imagePreview: {
-    width: '100%',
-    height: 220,
-    borderRadius: 16,
-    marginBottom: 16,
-    marginTop: 8,
-    backgroundColor: COLORS.white,
-  },
-  captionInput: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 12,
-    fontFamily: FONTS.regular,
-    fontSize: 15,
-    color: COLORS.text,
-    marginBottom: 18,
-    minHeight: 48,
-  },
-  postButton: {
-    backgroundColor: COLORS.secondary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  postButtonText: {
-    color: COLORS.white,
-    fontFamily: FONTS.bold,
-    fontSize: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 28,
-    alignItems: 'center',
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  modalTitle: {
-    fontWeight: 'bold',
-    fontSize: 20,
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  modalText: {
-    color: COLORS.text,
-    fontSize: 16,
-    marginBottom: 18,
-    textAlign: 'center',
-  },
-  modalButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 28,
-    marginTop: 8,
-  },
-  modalButtonText: {
-    color: COLORS.white,
-    fontFamily: FONTS.bold,
-    fontSize: 16,
-  },
-}); 
+} 

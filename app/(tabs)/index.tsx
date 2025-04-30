@@ -1,8 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, Text, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Animated, TouchableWithoutFeedback } from 'react-native';
-import { COLORS, SHADOWS } from '../../constants/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesome } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useTheme } from '../../contexts/ThemeContext';
+import { MOCK_MESSAGES } from './search'; // Import friends list
+import { EventRegister } from 'react-native-event-listeners';
 
 // Temporary mock data for stories
 const DEMO_STORY_IMAGES = [
@@ -78,43 +81,26 @@ const MOCK_POSTS = [
   },
 ];
 
-// Inline StoryBubble component
-const StoryBubble = ({ avatar, name, isActive }) => (
-  <View style={storyStyles.container}>
-    <View style={[storyStyles.ring, isActive && { borderColor: COLORS.primary }]}> 
-      <Image source={{ uri: avatar }} style={storyStyles.avatar} />
-    </View>
-    <Text style={storyStyles.name} numberOfLines={2} ellipsizeMode="tail">{name}</Text>
-  </View>
-);
-
-const storyStyles = StyleSheet.create({
-  container: { alignItems: 'center', marginHorizontal: 8, width: 80 },
-  ring: {
-    borderWidth: 2,
-    borderColor: COLORS.secondary,
-    borderRadius: 40,
-    padding: 2,
-    marginBottom: 4,
-  },
-  avatar: { width: 56, height: 56, borderRadius: 28 },
-  name: { color: COLORS.text, fontSize: 15, maxWidth: 78, textAlign: 'center', fontWeight: '500' },
-});
+// Add types for stories and posts
+type Story = { id: string; avatar: string; name: string; isActive: boolean; images: string[] };
+type Post = typeof MOCK_POSTS[number];
 
 export default function FeedScreen() {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [posts, setPosts] = useState(MOCK_POSTS);
   const [commentModal, setCommentModal] = useState({ visible: false, postId: null });
   const [commentText, setCommentText] = useState('');
   // Story modal state
-  const [storyModal, setStoryModal] = useState({ visible: false, story: null, index: 0 });
+  const [storyModal, setStoryModal] = useState<{ visible: boolean; story: Story | null; index: number }>({ visible: false, story: null, index: 0 });
+  const router = useRouter();
 
   // Heart animation state: { [postId]: { visible: bool, scale: Animated.Value } }
-  const heartAnimations = useRef({}).current;
+  const heartAnimations = useRef<{ [key: string]: { visible: boolean; scale: Animated.Value } }>({}).current;
 
   // Helper to initialize animation state for a post
-  const ensureHeartAnimation = (postId) => {
+  const ensureHeartAnimation = (postId: string) => {
     if (!heartAnimations[postId]) {
       heartAnimations[postId] = {
         visible: false,
@@ -125,8 +111,8 @@ export default function FeedScreen() {
   };
 
   // Double-tap logic
-  const lastTapRef = useRef({});
-  const handleDoubleTap = (postId) => {
+  const lastTapRef = useRef<{ [key: string]: number }>({});
+  const handleDoubleTap = (postId: string) => {
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
     if (lastTapRef.current[postId] && now - lastTapRef.current[postId] < DOUBLE_TAP_DELAY) {
@@ -138,7 +124,7 @@ export default function FeedScreen() {
   };
 
   // Heart animation trigger
-  const triggerHeartAnimation = (postId) => {
+  const triggerHeartAnimation = (postId: string) => {
     const anim = ensureHeartAnimation(postId);
     anim.visible = true;
     anim.scale.setValue(0.3);
@@ -160,7 +146,7 @@ export default function FeedScreen() {
   };
 
   // --- Story Modal handler ---
-  const handleStoryPress = (story) => {
+  const handleStoryPress = (story: Story) => {
     setStoryModal({ visible: true, story, index: 0 });
   };
 
@@ -172,7 +158,7 @@ export default function FeedScreen() {
     }, 2000);
   }, []);
 
-  const handleLike = (postId) => {
+  const handleLike = (postId: string) => {
     setPosts((prev) => prev.map(post => {
       if (post.id === postId) {
         const liked = !post.liked;
@@ -186,12 +172,12 @@ export default function FeedScreen() {
     }));
   };
 
-  const handleComment = (postId) => {
+  const handleComment = (postId: string) => {
     setCommentModal({ visible: true, postId });
     setCommentText('');
   };
 
-  const handleProfile = (username) => {
+  const handleProfile = (username: string) => {
     // TODO: Navigate to profile
     console.log('View profile:', username);
   };
@@ -230,7 +216,10 @@ export default function FeedScreen() {
   };
 
   // --- Render Post with double-tap and heart animation ---
-  const renderPost = ({ item }) => {
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
+  const renderPost = ({ item }: { item: Post }) => {
     const anim = ensureHeartAnimation(item.id);
     return (
       <View style={styles.postCardWrapper}>
@@ -264,12 +253,15 @@ export default function FeedScreen() {
         <Text style={styles.content}>{item.content}</Text>
         <View style={styles.actions}>
           <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
-            <FontAwesome name={item.liked ? 'heart' : 'heart-o'} size={22} color={item.liked ? 'red' : COLORS.text} />
+            <FontAwesome name={item.liked ? 'heart' : 'heart-o'} size={22} color={item.liked ? colors.primary : colors.text} />
             <Text style={styles.actionText}>{item.likes}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => handleComment(item.id)}>
-            <FontAwesome name="comment-o" size={22} color={COLORS.text} />
+            <FontAwesome name="comment-o" size={22} color={colors.text} />
             <Text style={styles.actionText}>{item.comments}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => { setSelectedPost(item); setShareModalVisible(true); }}>
+            <FontAwesome name="share" size={22} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -277,11 +269,281 @@ export default function FeedScreen() {
   };
 
   // --- Render StoryBubble with onPress ---
-  const renderStoryBubble = ({ item }) => (
+  const renderStoryBubble = ({ item }: { item: Story }) => (
     <TouchableOpacity onPress={() => handleStoryPress(item)} activeOpacity={0.7}>
       <StoryBubble {...item} />
     </TouchableOpacity>
   );
+
+  const renderMessageItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.messageRow}
+      onPress={() => router.push({ pathname: `./messages/${item.id}`, params: { name: item.name, avatar: item.avatar } })}
+    >
+      <Image source={{ uri: item.avatar }} style={styles.messageAvatar} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.messageName}>{item.name}</Text>
+        <Text style={styles.messageText} numberOfLines={1}>{item.lastMessage}</Text>
+      </View>
+      <Text style={styles.messageTime}>{item.time}</Text>
+    </TouchableOpacity>
+  );
+
+  // Move SHADOWS import here
+  const { SHADOWS } = require('../../constants/theme');
+
+  // Move styles and storyStyles inside FeedScreen for access to colors and SHADOWS
+  const storyStyles = StyleSheet.create({
+    container: { alignItems: 'center', marginHorizontal: 8, width: 80 },
+    ring: {
+      borderWidth: 2,
+      borderColor: colors.secondary,
+      borderRadius: 40,
+      padding: 2,
+      marginBottom: 4,
+    },
+    avatar: { width: 56, height: 56, borderRadius: 28 },
+    name: { color: colors.text, fontSize: 15, maxWidth: 78, textAlign: 'center', fontWeight: '500' },
+  });
+
+  // Move StoryBubble here so it has access to storyStyles/colors
+  const StoryBubble = ({ avatar, name, isActive }: { avatar: string; name: string; isActive: boolean }) => (
+    <View style={storyStyles.container}>
+      <View style={[storyStyles.ring, isActive && { borderColor: colors.primary }]}> 
+        <Image source={{ uri: avatar }} style={storyStyles.avatar} />
+      </View>
+      <Text style={storyStyles.name} numberOfLines={2} ellipsizeMode="tail">{name}</Text>
+    </View>
+  );
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background, // light purple
+    },
+    stories: {
+      backgroundColor: 'transparent',
+    },
+    listContent: {
+      padding: 8,
+      paddingBottom: 32,
+    },
+    postCardWrapper: {
+      backgroundColor: colors.white,
+      borderRadius: 18,
+      marginBottom: 16,
+      ...SHADOWS.small,
+      padding: 2,
+    },
+    postHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+      padding: 8,
+    },
+    userInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    avatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      marginRight: 10,
+    },
+    username: {
+      fontWeight: 'bold',
+      color: colors.text,
+      fontSize: 15,
+    },
+    timestamp: {
+      color: colors.textLight,
+      fontSize: 12,
+    },
+    postImage: {
+      width: '100%',
+      height: 220,
+      borderRadius: 14,
+      marginBottom: 8,
+      backgroundColor: colors.background,
+    },
+    content: {
+      color: colors.text,
+      fontSize: 15,
+      marginHorizontal: 12,
+      marginBottom: 8,
+    },
+    actions: {
+      flexDirection: 'row',
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 8,
+      marginHorizontal: 8,
+      marginBottom: 8,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: 24,
+    },
+    actionText: {
+      color: colors.text,
+      fontSize: 15,
+      marginLeft: 6,
+    },
+    // Modal styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.25)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: colors.white,
+      borderRadius: 16,
+      padding: 24,
+      width: '85%',
+      shadowColor: colors.primary,
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    modalTitle: {
+      fontWeight: 'bold',
+      fontSize: 18,
+      color: colors.text,
+      marginBottom: 12,
+    },
+    modalInput: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      padding: 10,
+      fontSize: 15,
+      color: colors.text,
+      backgroundColor: colors.background,
+    },
+    heartOverlay: {
+      position: 'absolute',
+      top: '35%',
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+      zIndex: 10,
+    },
+    storyModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.65)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    storyModalContent: {
+      backgroundColor: colors.white,
+      borderRadius: 18,
+      padding: 16,
+      alignItems: 'center',
+      width: 340,
+      maxWidth: '95%',
+    },
+    storyModalImage: {
+      width: 320,
+      height: 520,
+      borderRadius: 18,
+      marginBottom: 18,
+      backgroundColor: '#eee',
+      maxWidth: '100%',
+    },
+    storyModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    storyModalAvatarSmall: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      marginRight: 10,
+    },
+    storyProgressBarContainer: {
+      flexDirection: 'row',
+      width: 320,
+      marginBottom: 8,
+      marginTop: 4,
+      maxWidth: '100%',
+    },
+    storyProgressBar: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+      marginHorizontal: 2,
+      backgroundColor: '#ccc',
+    },
+    storyProgressBarActive: {
+      backgroundColor: colors.primary,
+    },
+    storyProgressBarInactive: {
+      backgroundColor: '#eee',
+    },
+    storyModalName: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 18,
+    },
+    storyModalClose: {
+      marginTop: 10,
+      padding: 8,
+    },
+    messageRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 10,
+    },
+    messageAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      marginRight: 10,
+    },
+    messageName: {
+      fontWeight: 'bold',
+      color: colors.text,
+      fontSize: 15,
+    },
+    messageText: {
+      color: colors.textLight,
+      fontSize: 12,
+    },
+    messageTime: {
+      color: colors.textLight,
+      fontSize: 12,
+    },
+  });
+
+  // Share Modal: List friends to share with
+  const handleShareToFriend = (friend: { id: string; name: string; avatar: string }) => {
+    setShareModalVisible(false);
+    if (selectedPost) {
+      router.push({
+        pathname: `/messages/${friend.id}`,
+        params: {
+          name: friend.name,
+          avatar: friend.avatar,
+          sharedPost: JSON.stringify({ image: selectedPost.image, content: selectedPost.content })
+        }
+      });
+    }
+  };
+
+  // Listen for new posts
+  useEffect(() => {
+    const listener = EventRegister.addEventListener('newPost', (newPost: any) => {
+      setPosts(prev => [newPost, ...prev]);
+    });
+    return () => {
+      EventRegister.removeEventListener(listener);
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -328,10 +590,10 @@ export default function FeedScreen() {
             />
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 }}>
               <TouchableOpacity onPress={() => setCommentModal({ visible: false, postId: null })}>
-                <Text style={{ color: COLORS.textLight, marginRight: 18, fontSize: 16 }}>Cancel</Text>
+                <Text style={{ color: colors.textLight, marginRight: 18, fontSize: 16 }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleSubmitComment}>
-                <Text style={{ color: COLORS.primary, fontWeight: 'bold', fontSize: 16 }}>Post</Text>
+                <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>Post</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -378,193 +640,39 @@ export default function FeedScreen() {
                   style={styles.storyModalClose}
                   onPress={() => setStoryModal({ visible: false, story: null, index: 0 })}
                 >
-                  <Text style={{ color: COLORS.primary, fontWeight: 'bold', fontSize: 18 }}>Close</Text>
+                  <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 18 }}>Close</Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
           )}
         </View>
       </Modal>
+      {/* Share Modal */}
+      <Modal
+        visible={shareModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShareModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 24, width: 320 }}>
+            <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Share Post With</Text>
+            <FlatList
+              data={MOCK_MESSAGES}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }} onPress={() => handleShareToFriend(item)}>
+                  <Image source={{ uri: item.avatar }} style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12 }} />
+                  <Text style={{ color: colors.text, fontSize: 16 }}>{item.name}</Text>
+                </TouchableOpacity>
+              )}
+            />
+            <TouchableOpacity onPress={() => setShareModalVisible(false)} style={{ marginTop: 18, alignSelf: 'flex-end' }}>
+              <Text style={{ color: colors.primary, fontSize: 16 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background, // light purple
-  },
-  stories: {
-    backgroundColor: 'transparent',
-  },
-  listContent: {
-    padding: 8,
-    paddingBottom: 32,
-  },
-  postCardWrapper: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    marginBottom: 16,
-    ...SHADOWS.small,
-    padding: 2,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    padding: 8,
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  username: {
-    fontWeight: 'bold',
-    color: COLORS.text,
-    fontSize: 15,
-  },
-  timestamp: {
-    color: COLORS.textLight,
-    fontSize: 12,
-  },
-  postImage: {
-    width: '100%',
-    height: 220,
-    borderRadius: 14,
-    marginBottom: 8,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    color: COLORS.text,
-    fontSize: 15,
-    marginHorizontal: 12,
-    marginBottom: 8,
-  },
-  actions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: 8,
-    marginHorizontal: 8,
-    marginBottom: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 24,
-  },
-  actionText: {
-    color: COLORS.text,
-    fontSize: 15,
-    marginLeft: 6,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 24,
-    width: '85%',
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  modalTitle: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    color: COLORS.text,
-    marginBottom: 12,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 15,
-    color: COLORS.text,
-    backgroundColor: COLORS.background,
-  },
-  heartOverlay: {
-    position: 'absolute',
-    top: '35%',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  storyModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyModalContent: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 16,
-    alignItems: 'center',
-    width: 340,
-    maxWidth: '95%',
-  },
-  storyModalImage: {
-    width: 320,
-    height: 520,
-    borderRadius: 18,
-    marginBottom: 18,
-    backgroundColor: '#eee',
-    maxWidth: '100%',
-  },
-  storyModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  storyModalAvatarSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 10,
-  },
-  storyProgressBarContainer: {
-    flexDirection: 'row',
-    width: 320,
-    marginBottom: 8,
-    marginTop: 4,
-    maxWidth: '100%',
-  },
-  storyProgressBar: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    marginHorizontal: 2,
-    backgroundColor: '#ccc',
-  },
-  storyProgressBarActive: {
-    backgroundColor: COLORS.primary,
-  },
-  storyProgressBarInactive: {
-    backgroundColor: '#eee',
-  },
-  storyModalName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 18,
-  },
-  storyModalClose: {
-    marginTop: 10,
-    padding: 8,
-  },
-});
