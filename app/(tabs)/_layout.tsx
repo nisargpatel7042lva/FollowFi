@@ -1,15 +1,6 @@
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../constants/theme';
-import { Image } from 'react-native';
-
-const AppLogo = () => (
-  <Image
-    source={require('../../assets/images/app-logo.png')}
-    style={{ width: 36, height: 36, marginRight: 16, borderRadius: 10 }}
-    resizeMode="contain"
-  />
-);
 
 export default function TabLayout() {
   return (
@@ -33,7 +24,6 @@ export default function TabLayout() {
           fontSize: 18,
         },
         headerShadowVisible: false,
-        headerRight: () => <AppLogo />,
       }}
     >
       <Tabs.Screen
@@ -48,9 +38,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Messages',
+          title: 'Search',
           tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="comments" size={size} color={color} />
+            <FontAwesome name="search" size={size} color={color} />
           ),
         }}
       />
