@@ -4,7 +4,7 @@ import { COLORS, FONTS } from '../../constants/theme';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function CreatePostScreen() {
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -47,14 +47,14 @@ export default function CreatePostScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Create a Post</Text>
         <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.button} onPress={pickImage}>
+          <TouchableOpacity style={[styles.button, styles.shadow]} onPress={pickImage}>
             <Text style={styles.buttonText}>Upload Photo</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={takePhoto}>
+          <TouchableOpacity style={[styles.button, styles.shadow]} onPress={takePhoto}>
             <Text style={styles.buttonText}>Take Photo</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={() => alert('Add to Story!')}>
-            <Text style={styles.buttonText}>Add to Story</Text>
+            <Text style={[styles.buttonText, styles.shadow]}>Add to Story</Text>
           </TouchableOpacity>
         </View>
         {image && (
@@ -192,5 +192,12 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontFamily: FONTS.bold,
     fontSize: 16,
+  },
+  shadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 3.84,
+    elevation: 5, // Android
   },
 }); 

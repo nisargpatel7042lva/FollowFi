@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity, FlatList, ScrollView, Dimensions } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Text,
+  Image,
+  TouchableOpacity,
+  FlatList,
+  ScrollView,
+  Dimensions,
+  Switch,
+} from 'react-native';
 import { COLORS, FONTS } from '../../constants/theme';
+
 
 const MOCK_USER = {
   name: 'Jane Doe',
@@ -24,16 +35,21 @@ const MOCK_USER = {
 
 const numColumns = 2;
 const screenWidth = Dimensions.get('window').width;
-const gridPadding = 16 * 2; // left + right
-const postImageSize = (screenWidth - gridPadding - 16) / numColumns; // 16 is total margin between images
+const gridPadding = 16 * 2;
+const postImageSize = (screenWidth - gridPadding - 16) / numColumns;
 
 export default function ProfileScreen() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
+  // const { theme, toggleTheme } = useTheme();
 
-  // Placeholder for Solana wallet connect
+  // const isDark = theme === 'dark';
+  // const backgroundColor = isDark ? '#121212' : '#ffffff';
+  // const textColor = isDark ? '#f0f0f0' : '#1a1a1a';
+  // const secondaryTextColor = isDark ? '#aaaaaa' : COLORS.textLight;
+  // const cardColor = isDark ? '#1e1e1e' : COLORS.white;
+
   const connectWallet = () => {
-    // TODO: Replace with solana-wallet-connect-adapter logic
     setWalletConnected(true);
     setWalletAddress('5D4g...XyZ1');
   };
@@ -52,17 +68,26 @@ export default function ProfileScreen() {
           <Text style={styles.bio}>{MOCK_USER.bio}</Text>
         </View>
       </View>
+
       <TouchableOpacity style={styles.walletButton} onPress={connectWallet}>
         <Text style={styles.walletButtonText}>
           {walletConnected ? 'Wallet Connected' : 'Connect Solana Wallet'}
         </Text>
       </TouchableOpacity>
+
+      {/* <View style={styles.toggleRow}>
+        <Text style={[styles.name, { color: textColor }]}>Dark Mode</Text>
+        <Switch value={isDark} onValueChange={toggleTheme} />
+      </View> */}
+
       {walletConnected && (
         <View style={styles.walletInfo}>
           <Text style={styles.walletLabel}>Wallet Address:</Text>
           <Text style={styles.walletAddress}>{walletAddress}</Text>
           <Text style={styles.walletLabel}>Portfolio:</Text>
-          <Text style={styles.walletValue}>${MOCK_USER.portfolio.totalValue}</Text>
+          <Text style={styles.walletValue}>
+            ${MOCK_USER.portfolio.totalValue}
+          </Text>
           <View style={styles.tokenRow}>
             {MOCK_USER.portfolio.tokens.map((t, idx) => (
               <Text key={idx} style={styles.token}>
@@ -72,6 +97,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       )}
+
       <Text style={styles.sectionTitle}>Posts</Text>
       <View style={styles.postsGridWrapper}>
         <FlatList
@@ -90,7 +116,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   scrollContent: {
     padding: 16,
@@ -112,18 +137,15 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: FONTS.bold,
     fontSize: 20,
-    color: COLORS.text,
   },
   username: {
     fontFamily: FONTS.medium,
     fontSize: 15,
-    color: COLORS.textLight,
     marginBottom: 2,
   },
   bio: {
     fontFamily: FONTS.regular,
     fontSize: 14,
-    color: COLORS.text,
     marginTop: 2,
   },
   walletButton: {
@@ -138,8 +160,14 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.medium,
     fontSize: 15,
   },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
   walletInfo: {
-    backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: 14,
     marginBottom: 14,
@@ -151,19 +179,16 @@ const styles = StyleSheet.create({
   walletLabel: {
     fontFamily: FONTS.medium,
     fontSize: 14,
-    color: COLORS.text,
     marginTop: 2,
   },
   walletAddress: {
     fontFamily: FONTS.regular,
     fontSize: 13,
-    color: COLORS.textLight,
     marginBottom: 6,
   },
   walletValue: {
     fontFamily: FONTS.bold,
     fontSize: 18,
-    color: COLORS.secondary,
     marginBottom: 4,
   },
   tokenRow: {
@@ -174,13 +199,11 @@ const styles = StyleSheet.create({
   token: {
     fontFamily: FONTS.medium,
     fontSize: 14,
-    color: COLORS.text,
     marginRight: 12,
   },
   sectionTitle: {
     fontFamily: FONTS.bold,
     fontSize: 18,
-    color: COLORS.text,
     marginBottom: 8,
     marginTop: 8,
   },
@@ -196,6 +219,5 @@ const styles = StyleSheet.create({
     height: postImageSize,
     borderRadius: 12,
     margin: 4,
-    backgroundColor: COLORS.white,
   },
-}); 
+});

@@ -71,7 +71,15 @@ export default function TabLayout() {
           ),
         }}
       />
-      
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Explore',
+          tabBarIcon: ({ color, size,focused }) => (
+            <FontAwesome name="compass" size={focused ? size +4 : size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
