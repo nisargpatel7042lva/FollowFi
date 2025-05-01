@@ -8,6 +8,9 @@ import { useFonts,
 } from '@expo-google-fonts/poppins';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+import { FONTS } from '../../constants/theme';
+import { Switch } from 'react-native';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -31,6 +34,7 @@ function useProtectedRoute(user: any) {
 
 function RootLayoutNav() {
   const { user } = useAuth();
+  const { colors, isDark, toggleTheme } = useTheme();
   useProtectedRoute(user);
 
   return (
@@ -63,8 +67,10 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

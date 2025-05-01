@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Text, FlatList, Image } from 'react-native';
-import { COLORS, FONTS } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { FONTS } from '../../constants/theme';
 
 const MOCK_PARTICIPANTS = [
   {
@@ -26,7 +27,76 @@ const MOCK_PARTICIPANTS = [
 ];
 
 export default function FinanceScreen() {
-  const renderParticipant = ({ item }) => (
+  const { colors } = useTheme();
+
+  type Participant = {
+    id: string;
+    name: string;
+    avatar: string;
+    totalStaked: number;
+    stakingHistory: { amount: number; time: string }[];
+  };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: 16,
+    },
+    title: {
+      fontFamily: FONTS.bold,
+      fontSize: 22,
+      color: colors.text,
+      marginBottom: 18,
+      textAlign: 'center',
+    },
+    card: {
+      backgroundColor: colors.white,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 18,
+      shadowColor: colors.primary,
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    avatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      marginRight: 14,
+    },
+    name: {
+      fontFamily: FONTS.semiBold,
+      fontSize: 17,
+      color: colors.text,
+    },
+    totalStaked: {
+      fontFamily: FONTS.medium,
+      fontSize: 15,
+      color: colors.secondary,
+    },
+    historyTitle: {
+      fontFamily: FONTS.medium,
+      fontSize: 15,
+      color: colors.text,
+      marginTop: 8,
+    },
+    historyItem: {
+      fontFamily: FONTS.regular,
+      fontSize: 14,
+      color: colors.textLight,
+      marginLeft: 8,
+      marginTop: 2,
+    },
+  });
+
+  const renderParticipant = ({ item }: { item: Participant }) => (
     <View style={styles.card}>
       <View style={styles.header}>
         <Image source={{ uri: item.avatar }} style={styles.avatar} />
@@ -36,7 +106,7 @@ export default function FinanceScreen() {
         </View>
       </View>
       <Text style={styles.historyTitle}>Staking History:</Text>
-      {item.stakingHistory.map((s, idx) => (
+      {item.stakingHistory.map((s: { amount: number; time: string }, idx: number) => (
         <Text key={idx} style={styles.historyItem}>
           +${s.amount} on {s.time}
         </Text>
@@ -56,63 +126,4 @@ export default function FinanceScreen() {
       />
     </View>
   );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 16,
-  },
-  title: {
-    fontFamily: FONTS.bold,
-    fontSize: 22,
-    color: COLORS.text,
-    marginBottom: 18,
-    textAlign: 'center',
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 18,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 14,
-  },
-  name: {
-    fontFamily: FONTS.semiBold,
-    fontSize: 17,
-    color: COLORS.text,
-  },
-  totalStaked: {
-    fontFamily: FONTS.medium,
-    fontSize: 15,
-    color: COLORS.secondary,
-  },
-  historyTitle: {
-    fontFamily: FONTS.medium,
-    fontSize: 15,
-    color: COLORS.text,
-    marginTop: 8,
-  },
-  historyItem: {
-    fontFamily: FONTS.regular,
-    fontSize: 14,
-    color: COLORS.textLight,
-    marginLeft: 8,
-    marginTop: 2,
-  },
-}); 
+} 

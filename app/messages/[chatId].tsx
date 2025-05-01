@@ -1,15 +1,25 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, StyleSheet, Text, Image, TouchableOpacity, TextInput, FlatList, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { COLORS, FONTS } from '../../constants/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+
+type Message = {
+  id: string;
+  fromMe: boolean;
+  text?: string;
+  image?: string;
+  sticker?: string;
+  video?: string;
+  time: string;
+};
 
 const MOCK_USER = {
   name: 'Alice',
   avatar: 'https://randomuser.me/api/portraits/women/10.jpg',
 };
 
-const MOCK_MESSAGES = [
+const MOCK_MESSAGES: Message[] = [
   { id: '1', fromMe: false, text: 'Hey! 👋', time: '10:00 AM' },
   { id: '2', fromMe: true, text: 'Hi Alice! How are you?', time: '10:01 AM' },
   { id: '3', fromMe: false, text: 'I am good! Check this out:', time: '10:02 AM' },
@@ -19,11 +29,40 @@ const MOCK_MESSAGES = [
 ];
 
 export default function ChatScreen() {
-  const { chatId } = useLocalSearchParams();
+  const { chatId, name, avatar, sharedPost } = useLocalSearchParams();
   const router = useRouter();
-  const [messages, setMessages] = useState(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [input, setInput] = useState('');
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList<any>>(null);
+
+  const userName = name || 'User';
+  const userAvatar = avatar || 'https://randomuser.me/api/portraits/lego/1.jpg';
+
+  // Add shared post as a new message on mount if present
+  useEffect(() => {
+    if (sharedPost) {
+      try {
+        const post = JSON.parse(sharedPost as string);
+        let image: string = '';
+        if (typeof post.image === 'string') {
+          image = post.image;
+        } else if (Array.isArray(post.image) && typeof post.image[0] === 'string') {
+          image = post.image[0];
+        }
+        setMessages(prev => [
+          ...prev,
+          {
+            id: String(prev.length + 1),
+            fromMe: true,
+            image,
+            text: post.content,
+            time: 'Now',
+          },
+        ]);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      } catch {}
+    }
+  }, [sharedPost]);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -62,20 +101,23 @@ export default function ChatScreen() {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
-  const renderMessage = ({ item }: { item: any }) => (
-    <View style={[styles.messageRow, item.fromMe ? styles.fromMe : styles.fromOther]}>
-      {item.text && <Text style={styles.messageText}>{item.text}</Text>}
-      {item.sticker && <Text style={styles.sticker}>{item.sticker}</Text>}
-      {item.image && <Image source={{ uri: item.image }} style={styles.messageImage} />}
-      {item.video && (
-        <View style={styles.videoThumb}>
-          <FontAwesome name="video-camera" size={32} color={COLORS.primary} />
-          <Text style={{ color: COLORS.textLight, fontSize: 12, marginTop: 2 }}>Video</Text>
-        </View>
-      )}
-      <Text style={styles.time}>{item.time}</Text>
-    </View>
-  );
+  const renderMessage = ({ item }: { item: Message }) => {
+    const imageUri = typeof item.image === 'string' ? item.image : '';
+    return (
+      <View style={[styles.messageRow, item.fromMe ? styles.fromMe : styles.fromOther]}>
+        {item.text && <Text style={styles.messageText}>{item.text}</Text>}
+        {item.sticker && <Text style={styles.sticker}>{item.sticker}</Text>}
+        {typeof imageUri === 'string' && imageUri.trim().length > 0 && <Image source={{ uri: imageUri }} style={styles.messageImage} />}
+        {item.video && (
+          <View style={styles.videoThumb}>
+            <FontAwesome name="video-camera" size={32} color={COLORS.primary} />
+            <Text style={{ color: COLORS.textLight, fontSize: 12, marginTop: 2 }}>Video</Text>
+          </View>
+        )}
+        <Text style={styles.time}>{item.time}</Text>
+      </View>
+    );
+  };
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -84,8 +126,8 @@ export default function ChatScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 10 }}>
           <FontAwesome name="chevron-left" size={24} color={COLORS.primary} />
         </TouchableOpacity>
-        <Image source={{ uri: MOCK_USER.avatar }} style={styles.avatar} />
-        <Text style={styles.name}>{MOCK_USER.name}</Text>
+        <Image source={{ uri: userAvatar }} style={styles.avatar} />
+        <Text style={styles.name}>{userName}</Text>
       </View>
       {/* Chat history */}
       <FlatList
@@ -99,7 +141,7 @@ export default function ChatScreen() {
       />
       {/* Input bar */}
       <View style={styles.inputBar}>
-        <TouchableOpacity onPress={handleSendSticker} style={styles.inputIcon}>
+        <TouchableOpacity onPress={() => handleSendSticker('😊')} style={styles.inputIcon}>
           <Text style={{ fontSize: 24 }}>😊</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleSendPhoto} style={styles.inputIcon}>

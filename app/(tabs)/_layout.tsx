@@ -2,14 +2,28 @@ import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../constants/theme';
 
+import { Image } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
+
+
+const AppLogo = () => (
+  <Image
+    source={require('../../assets/images/app-logo.png')}
+    style={{ width: 36, height: 36, marginRight: 16, borderRadius: 10 }}
+    resizeMode="contain"
+  />
+);
+
+
 export default function TabLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textLight,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textLight,
         tabBarStyle: {
-          borderTopColor: COLORS.border,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
           elevation: 0,
           height: 60,
@@ -17,7 +31,7 @@ export default function TabLayout() {
           paddingTop: 8,
         },
         headerStyle: {
-          backgroundColor: COLORS.background,
+          backgroundColor: colors.background,
         },
         headerTitleStyle: {
           fontFamily: FONTS.semiBold,
