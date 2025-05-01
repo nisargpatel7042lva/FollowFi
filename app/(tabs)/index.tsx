@@ -633,7 +633,16 @@ export default function FeedScreen() {
                 {/* Avatar and name */}
                 <View style={styles.storyModalHeader}>
                   <Image source={{ uri: storyModal.story.avatar }} style={styles.storyModalAvatarSmall} />
-                  <Text style={styles.storyModalName}>{storyModal.story.name}</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setStoryModal({ visible: false, story: null, index: 0 });
+                      if (storyModal.story) {
+                        router.push({ pathname: '/user/[userId]', params: { userId: storyModal.story.id } });
+                      }
+                    }}
+                  >
+                    <Text style={styles.storyModalName}>{storyModal.story.name}</Text>
+                  </TouchableOpacity>
                 </View>
                 {/* Close button */}
                 <TouchableOpacity
