@@ -4,6 +4,7 @@ import { COLORS, FONTS } from '../../constants/theme';
 import { Image } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
+
 const AppLogo = () => (
   <Image
     source={require('../../assets/images/app-logo.png')}
