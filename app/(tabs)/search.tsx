@@ -1,121 +1,70 @@
-import React from 'react';
-import { View, StyleSheet, FlatList, Image, TouchableOpacity, Text, ScrollView } from 'react-native';
-import { FONTS } from '../../constants/theme';
+import React, { useState } from 'react';
+import { View, TextInput, FlatList, TouchableOpacity, Text, Image, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
 
-export const MOCK_MESSAGES = [
-  {
-    id: '1',
-    name: 'Alice',
-    avatar: 'https://randomuser.me/api/portraits/women/10.jpg',
-    lastMessage: 'See you soon! 😊',
-    time: '2m ago',
-  },
-  {
-    id: '2',
-    name: 'Bob',
-    avatar: 'https://randomuser.me/api/portraits/men/11.jpg',
-    lastMessage: "Let's catch up tomorrow.",
-    time: '10m ago',
-  },
-  {
-    id: '3',
-    name: 'Charlie',
-    avatar: 'https://randomuser.me/api/portraits/men/12.jpg',
-    lastMessage: 'Sent the docs.',
-    time: '1h ago',
-  },
+// Dummy user data (replace with real API call)
+const USERS = [
+  { id: '1', name: 'John Doe', avatar: 'https://randomuser.me/api/portraits/men/1.jpg' },
+  { id: '2', name: 'Jane Smith', avatar: 'https://randomuser.me/api/portraits/women/2.jpg' },
+  { id: '3', name: 'Alexandria', avatar: 'https://randomuser.me/api/portraits/men/3.jpg' },
+  { id: '4', name: 'Neora', avatar: 'https://randomuser.me/api/portraits/women/4.jpg' },
+  { id: '5', name: 'Maximilian', avatar: 'https://randomuser.me/api/portraits/men/5.jpg' },
 ];
 
-export default function MessagesScreen() {
-  const { colors } = useTheme();
+export default function SearchScreen() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState(USERS);
   const router = useRouter();
+  const { colors } = useTheme();
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-      paddingTop: 8,
-    },
-    sectionTitle: {
-      fontFamily: FONTS.bold,
-      fontSize: 22,
-      color: colors.text,
-      marginLeft: 16,
-      marginTop: 18,
-      marginBottom: 8,
-    },
-    messagesList: {
-      paddingHorizontal: 0,
-    },
-    messageRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: colors.white,
-      borderRadius: 12,
-      marginHorizontal: 8,
-      marginBottom: 10,
-      shadowColor: colors.primary,
-      shadowOpacity: 0.06,
-      shadowRadius: 2,
-      elevation: 1,
-    },
-    messageAvatar: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      marginRight: 12,
-    },
-    messageName: {
-      fontFamily: FONTS.medium,
-      fontSize: 16,
-      color: colors.text,
-    },
-    messageText: {
-      fontFamily: FONTS.regular,
-      fontSize: 14,
-      color: colors.textLight,
-      marginTop: 2,
-    },
-    messageTime: {
-      fontFamily: FONTS.regular,
-      fontSize: 13,
-      color: colors.textLight,
-      marginLeft: 8,
-    },
-  });
-
-  const renderMessageItem = ({ item }: { item: { id: string; name: string; avatar: string; lastMessage: string; time: string } }) => (
-    <TouchableOpacity
-      style={styles.messageRow}
-      onPress={() => router.push({
-        pathname: '/messages/[chatId]',
-        params: { chatId: item.id, name: item.name, avatar: item.avatar }
-      })}
-    >
-      <Image source={{ uri: item.avatar }} style={styles.messageAvatar} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.messageName}>{item.name}</Text>
-        <Text style={styles.messageText} numberOfLines={1}>{item.lastMessage}</Text>
-      </View>
-      <Text style={styles.messageTime}>{item.time}</Text>
-    </TouchableOpacity>
-  );
+  const handleSearch = (text: string) => {
+    setQuery(text);
+    setResults(
+      USERS.filter(user =>
+        user.name.toLowerCase().includes(text.toLowerCase())
+      )
+    );
+  };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-      <Text style={styles.sectionTitle}>Messages</Text>
-      <FlatList
-        data={MOCK_MESSAGES}
-        renderItem={renderMessageItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.messagesList}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={false}
+    <View style={{ flex: 1, padding: 16, backgroundColor: colors.background }}>
+      <TextInput
+        placeholder="Search users..."
+        placeholderTextColor={colors.textLight}
+        value={query}
+        onChangeText={handleSearch}
+        style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.card }]}
       />
-    </ScrollView>
+      <FlatList
+        data={results}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[styles.resultRow, { borderBottomColor: colors.border }]}
+            onPress={() => router.push({ pathname: '/user/[userId]', params: { userId: item.id } })}
+          >
+            <Image source={{ uri: item.avatar }} style={styles.avatar} />
+            <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={<Text style={{ color: colors.textLight, textAlign: 'center', marginTop: 32 }}>No users found.</Text>}
+      />
+    </View>
   );
-} 
+}
+
+const styles = StyleSheet.create({
+  input: {
+    borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 16,
+  },
+  resultRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1,
+  },
+  avatar: {
+    width: 40, height: 40, borderRadius: 20, marginRight: 12,
+  },
+  name: {
+    fontSize: 16,
+  },
+}); 

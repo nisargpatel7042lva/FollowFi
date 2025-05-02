@@ -1,3 +1,5 @@
+import 'react-native-get-random-values';
+import React from 'react';
 import { useEffect } from 'react';
 import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
 import { useFonts, 
@@ -9,7 +11,6 @@ import { useFonts,
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
-import { FONTS } from '../../constants/theme';
 import { Switch } from 'react-native';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.

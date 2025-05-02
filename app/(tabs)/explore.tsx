@@ -1,8 +1,7 @@
-import React from 'react';
-import { View, StyleSheet, FlatList, TextInput, Image, TouchableOpacity, Text, Dimensions, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, FlatList, RefreshControl, Text, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Animated, TouchableWithoutFeedback, Dimensions, SafeAreaView, ScrollView } from 'react-native';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { FONTS } from '../../constants/theme';
 
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
 
