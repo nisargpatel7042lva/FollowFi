@@ -1,8 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { View, StyleSheet, Text, Image, TouchableOpacity, TextInput, FlatList, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { COLORS, FONTS } from '../../constants/theme';
+import { FONTS } from '../../constants/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 
 type Message = {
   id: string;
@@ -34,6 +35,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [input, setInput] = useState('');
   const flatListRef = useRef<FlatList<any>>(null);
+  const { colors } = useTheme();
 
   const userName = name || 'User';
   const userAvatar = avatar || 'https://randomuser.me/api/portraits/lego/1.jpg';
@@ -102,32 +104,34 @@ export default function ChatScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
-    const imageUri = typeof item.image === 'string' ? item.image : '';
+    const imageUri = typeof item.image === 'string' && !Array.isArray(item.image) ? item.image : '';
     return (
-      <View style={[styles.messageRow, item.fromMe ? styles.fromMe : styles.fromOther]}>
-        {item.text && <Text style={styles.messageText}>{item.text}</Text>}
+      <View style={[styles.messageRow, item.fromMe ? styles.fromMe : styles.fromOther, { backgroundColor: item.fromMe ? colors.primary + '22' : colors.card }]}>
+        {item.text && <Text style={[styles.messageText, { color: colors.text }]}>{item.text}</Text>}
         {item.sticker && <Text style={styles.sticker}>{item.sticker}</Text>}
-        {typeof imageUri === 'string' && imageUri.trim().length > 0 && <Image source={{ uri: imageUri }} style={styles.messageImage} />}
+        {imageUri.length > 0 && (
+          <Image source={{ uri: imageUri }} style={styles.messageImage} />
+        )}
         {item.video && (
           <View style={styles.videoThumb}>
-            <FontAwesome name="video-camera" size={32} color={COLORS.primary} />
-            <Text style={{ color: COLORS.textLight, fontSize: 12, marginTop: 2 }}>Video</Text>
+            <FontAwesome name="video-camera" size={32} color={colors.primary} />
+            <Text style={{ color: colors.textLight, fontSize: 12, marginTop: 2 }}>Video</Text>
           </View>
         )}
-        <Text style={styles.time}>{item.time}</Text>
+        <Text style={[styles.time, { color: colors.textLight }]}>{item.time}</Text>
       </View>
     );
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 10 }}>
-          <FontAwesome name="chevron-left" size={24} color={COLORS.primary} />
+          <FontAwesome name="chevron-left" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Image source={{ uri: userAvatar }} style={styles.avatar} />
-        <Text style={styles.name}>{userName}</Text>
+        <Text style={[styles.name, { color: colors.text }]}>{userName}</Text>
       </View>
       {/* Chat history */}
       <FlatList
@@ -140,26 +144,26 @@ export default function ChatScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
       {/* Input bar */}
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
         <TouchableOpacity onPress={() => handleSendSticker('😊')} style={styles.inputIcon}>
           <Text style={{ fontSize: 24 }}>😊</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleSendPhoto} style={styles.inputIcon}>
-          <FontAwesome name="image" size={22} color={COLORS.primary} />
+          <FontAwesome name="image" size={22} color={colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={handleSendVideo} style={styles.inputIcon}>
-          <MaterialIcons name="videocam" size={24} color={COLORS.primary} />
+          <MaterialIcons name="videocam" size={24} color={colors.primary} />
         </TouchableOpacity>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
           placeholder="Type a message..."
-          placeholderTextColor={COLORS.textLight}
+          placeholderTextColor={colors.textLight}
           value={input}
           onChangeText={setInput}
           multiline
         />
-        <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
-          <FontAwesome name="send" size={20} color={COLORS.white} />
+        <TouchableOpacity onPress={handleSend} style={[styles.sendButton, { backgroundColor: colors.primary }]}>
+          <FontAwesome name="send" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -169,15 +173,12 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
     elevation: 2,
   },
   avatar: {
@@ -189,7 +190,6 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: FONTS.bold,
     fontSize: 18,
-    color: COLORS.text,
   },
   chatContent: {
     padding: 12,
@@ -198,36 +198,28 @@ const styles = StyleSheet.create({
   messageRow: {
     maxWidth: '80%',
     marginBottom: 12,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 10,
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.white,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 1,
   },
   fromMe: {
     alignSelf: 'flex-end',
-    backgroundColor: COLORS.primary,
   },
   fromOther: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.white,
   },
   messageText: {
     fontFamily: FONTS.regular,
     fontSize: 15,
-    color: COLORS.text,
   },
   sticker: {
     fontSize: 32,
     marginVertical: 4,
   },
   messageImage: {
-    width: 160,
-    height: 120,
-    borderRadius: 10,
+    width: 180,
+    height: 180,
+    borderRadius: 12,
     marginVertical: 6,
   },
   videoThumb: {
@@ -236,37 +228,31 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 11,
-    color: COLORS.textLight,
     marginTop: 4,
     alignSelf: 'flex-end',
   },
   inputBar: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 10,
-    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
   },
   inputIcon: {
-    marginRight: 8,
+    marginHorizontal: 4,
   },
   input: {
     flex: 1,
-    minHeight: 40,
-    maxHeight: 100,
-    backgroundColor: COLORS.background,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    fontFamily: FONTS.regular,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     fontSize: 15,
-    color: COLORS.text,
-    marginRight: 8,
+    marginHorizontal: 6,
   },
   sendButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
     padding: 10,
+    borderRadius: 20,
     marginLeft: 4,
   },
 }); 

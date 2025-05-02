@@ -103,6 +103,7 @@ const FeedScreen = () => {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [notificationsVisible, setNotificationsVisible] = useState(false);
+  const [participantsModalVisible, setParticipantsModalVisible] = useState(false);
   const router = useRouter();
 
   // Heart animation state: { [postId]: { visible: bool, scale: Animated.Value } }
@@ -220,20 +221,20 @@ const FeedScreen = () => {
   const renderPost = ({ item }: { item: Post }) => {
     const anim = ensureHeartAnimation(item.id);
     return (
-      <View style={styles.postCardWrapper}>
+      <View style={[styles.postCardWrapper, { backgroundColor: colors.card, shadowColor: colors.primary }]}> 
         <View style={styles.postHeader}>
           <TouchableOpacity style={styles.userInfo} onPress={() => handleProfile(item.username)}>
             <Image source={{ uri: item.profilePicture }} style={styles.avatar} />
             <View>
-              <Text style={styles.username}>{item.username}</Text>
-              <Text style={styles.timestamp}>{item.timestamp}</Text>
+              <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
+              <Text style={[styles.timestamp, { color: colors.textLight }]}>{item.timestamp}</Text>
             </View>
           </TouchableOpacity>
         </View>
         {item.image && (
           <TouchableWithoutFeedback onPress={() => handleDoubleTap(item.id)}>
             <View>
-              <Image source={{ uri: item.image }} style={styles.postImage} />
+              <Image source={{ uri: item.image }} style={[styles.postImage, { backgroundColor: colors.background }]} />
               {anim.visible && (
                 <Animated.View
                   style={[
@@ -248,15 +249,15 @@ const FeedScreen = () => {
             </View>
           </TouchableWithoutFeedback>
         )}
-        <Text style={styles.content}>{item.content}</Text>
-        <View style={styles.actions}>
+        <Text style={[styles.content, { color: colors.text }]}>{item.content}</Text>
+        <View style={[styles.actions, { borderTopColor: colors.border }]}> 
           <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
             <FontAwesome name={item.liked ? 'heart' : 'heart-o'} size={22} color={item.liked ? colors.primary : colors.text} />
-            <Text style={styles.actionText}>{item.likes}</Text>
+            <Text style={[styles.actionText, { color: colors.text }]}>{item.likes}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => handleComment(item.id)}>
             <FontAwesome name="comment-o" size={22} color={colors.text} />
-            <Text style={styles.actionText}>{item.comments}</Text>
+            <Text style={[styles.actionText, { color: colors.text }]}>{item.comments}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => { setSelectedPost(item); setShareModalVisible(true); }}>
             <FontAwesome name="share" size={22} color={colors.text} />
@@ -308,7 +309,15 @@ const FeedScreen = () => {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header row with app icon and messaging icon */}
+      <View style={[styles.headerRow, { borderBottomColor: colors.border }]}> 
+        <Image source={require('../../assets/images/icon.png')} style={styles.appIcon} />
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity onPress={() => setParticipantsModalVisible(true)} style={styles.messageIconButton}>
+          <FontAwesome name="envelope" size={26} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
       {/* Story Bubbles */}
       <FlatList
         data={MOCK_STORIES}
@@ -472,6 +481,38 @@ const FeedScreen = () => {
           </View>
         </View>
       </Modal>
+      {/* Participants Modal for chat selection */}
+      <Modal
+        visible={participantsModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setParticipantsModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 24, width: 320 }}>
+            <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Select a Participant</Text>
+            <FlatList
+              data={MOCK_FRIENDS}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}
+                  onPress={() => {
+                    setParticipantsModalVisible(false);
+                    router.push({ pathname: '/messages/[chatId]', params: { chatId: item.id, name: item.name, avatar: item.avatar } });
+                  }}
+                >
+                  <Image source={{ uri: item.avatar }} style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12 }} />
+                  <Text style={{ color: colors.text, fontSize: 16 }}>{item.name}</Text>
+                </TouchableOpacity>
+              )}
+            />
+            <TouchableOpacity onPress={() => setParticipantsModalVisible(false)} style={{ marginTop: 18, alignSelf: 'flex-end' }}>
+              <Text style={{ color: colors.primary, fontSize: 16 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -479,7 +520,23 @@ const FeedScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  appIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  messageIconButton: {
+    padding: 6,
+    marginLeft: 8,
   },
   stories: {
     backgroundColor: 'transparent',
@@ -489,7 +546,6 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   postCardWrapper: {
-    backgroundColor: COLORS.white,
     borderRadius: 18,
     marginBottom: 16,
     ...SHADOWS.small,
@@ -513,11 +569,9 @@ const styles = StyleSheet.create({
   },
   username: {
     fontWeight: 'bold',
-    color: COLORS.text,
     fontSize: 15,
   },
   timestamp: {
-    color: COLORS.textLight,
     fontSize: 12,
   },
   postImage: {
@@ -525,10 +579,8 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 14,
     marginBottom: 8,
-    backgroundColor: COLORS.background,
   },
   content: {
-    color: COLORS.text,
     fontSize: 15,
     marginHorizontal: 12,
     marginBottom: 8,
@@ -536,7 +588,6 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
     paddingTop: 8,
     marginHorizontal: 8,
     marginBottom: 8,
@@ -547,7 +598,6 @@ const styles = StyleSheet.create({
     marginRight: 24,
   },
   actionText: {
-    color: COLORS.text,
     fontSize: 15,
     marginLeft: 6,
   },
