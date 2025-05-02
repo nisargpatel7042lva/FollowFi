@@ -81,6 +81,91 @@ const MOCK_POSTS = [
     commentList: [],
     liked: false,
   },
+  // Additional posts for better scrolling/testing
+  {
+    id: '4',
+    username: 'neora',
+    content: 'Learning about DeFi and loving it! 🌐',
+    likes: 19,
+    comments: 3,
+    timestamp: '3h ago',
+    profilePicture: 'https://randomuser.me/api/portraits/women/4.jpg',
+    image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429',
+    commentList: ['So cool!', 'Teach me!', 'Nice!'],
+    liked: false,
+  },
+  {
+    id: '5',
+    username: 'maximilian',
+    content: 'Crypto is the future. HODL! 🚀',
+    likes: 33,
+    comments: 2,
+    timestamp: '5h ago',
+    profilePicture: 'https://randomuser.me/api/portraits/men/5.jpg',
+    image: 'https://images.unsplash.com/photo-1465101178521-c1a9136a3b99',
+    commentList: ['Absolutely!', 'To the moon!'],
+    liked: false,
+  },
+  {
+    id: '6',
+    username: 'alice',
+    content: 'Just bought my first NFT! 🎨',
+    likes: 21,
+    comments: 1,
+    timestamp: '6h ago',
+    profilePicture: 'https://randomuser.me/api/portraits/women/10.jpg',
+    image: 'https://images.unsplash.com/photo-1519985176271-adb1088fa94c',
+    commentList: ['Congrats!'],
+    liked: false,
+  },
+  {
+    id: '7',
+    username: 'bob',
+    content: 'Passive income is the best income. 💸',
+    likes: 17,
+    comments: 0,
+    timestamp: '7h ago',
+    profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg',
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
+    commentList: [],
+    liked: false,
+  },
+  {
+    id: '8',
+    username: 'carla',
+    content: 'Exploring new blockchain projects!',
+    likes: 25,
+    comments: 2,
+    timestamp: '8h ago',
+    profilePicture: 'https://randomuser.me/api/portraits/women/12.jpg',
+    image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308',
+    commentList: ['Which ones?', 'Share more!'],
+    liked: false,
+  },
+  {
+    id: '9',
+    username: 'daniel',
+    content: 'Automating my savings with smart contracts.',
+    likes: 14,
+    comments: 1,
+    timestamp: '9h ago',
+    profilePicture: 'https://randomuser.me/api/portraits/men/13.jpg',
+    image: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca',
+    commentList: ['Techy!'],
+    liked: false,
+  },
+  {
+    id: '10',
+    username: 'emma',
+    content: 'Financial freedom is the goal! 🌟',
+    likes: 29,
+    comments: 4,
+    timestamp: '10h ago',
+    profilePicture: 'https://randomuser.me/api/portraits/women/14.jpg',
+    image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429',
+    commentList: ['Inspiring!', 'Go girl!', 'You got this!', 'Rooting for you!'],
+    liked: false,
+  },
 ];
 
 type Story = { id: string; avatar: string; name: string; isActive: boolean; images: string[] };
@@ -90,6 +175,19 @@ const MOCK_NOTIFICATIONS = [
   { id: '1', type: 'like', text: 'Mark liked your post', time: '2m ago' },
   { id: '2', type: 'story', text: 'Neora viewed your story', time: '10m ago' },
   { id: '3', type: 'comment', text: 'Alexandria commented on your story', time: '1h ago' },
+];
+
+const PARTICIPANTS = [
+  { id: '1', name: 'Alice', avatar: 'https://randomuser.me/api/portraits/women/10.jpg' },
+  { id: '2', name: 'Bob', avatar: 'https://randomuser.me/api/portraits/men/11.jpg' },
+  { id: '3', name: 'Carla', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
+  { id: '4', name: 'Daniel', avatar: 'https://randomuser.me/api/portraits/men/13.jpg' },
+  { id: '5', name: 'Emma', avatar: 'https://randomuser.me/api/portraits/women/14.jpg' },
+  { id: '6', name: 'Frank', avatar: 'https://randomuser.me/api/portraits/men/15.jpg' },
+  { id: '7', name: 'Grace', avatar: 'https://randomuser.me/api/portraits/women/16.jpg' },
+  { id: '8', name: 'Henry', avatar: 'https://randomuser.me/api/portraits/men/17.jpg' },
+  { id: '9', name: 'Ivy', avatar: 'https://randomuser.me/api/portraits/women/18.jpg' },
+  { id: '10', name: 'Jack', avatar: 'https://randomuser.me/api/portraits/men/19.jpg' },
 ];
 
 const FeedScreen = () => {
@@ -103,7 +201,6 @@ const FeedScreen = () => {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [notificationsVisible, setNotificationsVisible] = useState(false);
-  const [participantsModalVisible, setParticipantsModalVisible] = useState(false);
   const router = useRouter();
 
   // Heart animation state: { [postId]: { visible: bool, scale: Animated.Value } }
@@ -155,11 +252,20 @@ const FeedScreen = () => {
     setStoryModal({ visible: true, story, index: 0 });
   };
 
+  // Shuffle array helper
+  function shuffleArray<T>(array: T[]): T[] {
+    return array
+      .map((value) => ({ value, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ value }) => value);
+  }
+
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     setTimeout(() => {
+      setPosts(prev => shuffleArray(prev));
       setRefreshing(false);
-    }, 2000);
+    }, 1200);
   }, []);
 
   const handleLike = (postId: string) => {
@@ -279,10 +385,6 @@ const FeedScreen = () => {
   );
 
   // Share Modal: List friends to share with (dummy data for now)
-  const MOCK_FRIENDS = [
-    { id: '1', name: 'Alice', avatar: 'https://randomuser.me/api/portraits/women/10.jpg' },
-    { id: '2', name: 'Bob', avatar: 'https://randomuser.me/api/portraits/men/11.jpg' },
-  ];
   const handleShareToFriend = (friend: { id: string; name: string; avatar: string }) => {
     setShareModalVisible(false);
     if (selectedPost) {
@@ -314,21 +416,11 @@ const FeedScreen = () => {
       <View style={[styles.headerRow, { borderBottomColor: colors.border }]}> 
         <Image source={require('../../assets/images/icon.png')} style={styles.appIcon} />
         <View style={{ flex: 1 }} />
-        <TouchableOpacity onPress={() => setParticipantsModalVisible(true)} style={styles.messageIconButton}>
+        <TouchableOpacity onPress={() => router.push('/messages/ParticipantsList')} style={styles.messageIconButton}>
           <FontAwesome name="envelope" size={26} color={colors.primary} />
         </TouchableOpacity>
       </View>
-      {/* Story Bubbles */}
-      <FlatList
-        data={MOCK_STORIES}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={item => item.id}
-        renderItem={renderStoryBubble}
-        style={styles.stories}
-        contentContainerStyle={{ paddingLeft: 12, paddingVertical: 12 }}
-      />
-      {/* Feed */}
+      {/* Feed with Stories as ListHeaderComponent */}
       <FlatList
         data={posts}
         renderItem={renderPost}
@@ -338,6 +430,19 @@ const FeedScreen = () => {
         }
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={styles.stories}>
+            <FlatList
+              data={MOCK_STORIES}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={item => item.id}
+              renderItem={renderStoryBubble}
+              style={styles.stories}
+              contentContainerStyle={{ paddingLeft: 12, paddingVertical: 12 }}
+            />
+          </View>
+        }
       />
       {/* Comment Modal */}
       <Modal
@@ -438,7 +543,7 @@ const FeedScreen = () => {
           <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 24, width: 320 }}>
             <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Share Post With</Text>
             <FlatList
-              data={MOCK_FRIENDS}
+              data={PARTICIPANTS}
               keyExtractor={item => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }} onPress={() => handleShareToFriend(item)}>
@@ -477,38 +582,6 @@ const FeedScreen = () => {
             ))}
             <TouchableOpacity style={styles.closeNotificationsButton} onPress={() => setNotificationsVisible(false)}>
               <Text style={styles.closeStoryText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-      {/* Participants Modal for chat selection */}
-      <Modal
-        visible={participantsModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setParticipantsModalVisible(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 24, width: 320 }}>
-            <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Select a Participant</Text>
-            <FlatList
-              data={MOCK_FRIENDS}
-              keyExtractor={item => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}
-                  onPress={() => {
-                    setParticipantsModalVisible(false);
-                    router.push({ pathname: '/messages/[chatId]', params: { chatId: item.id, name: item.name, avatar: item.avatar } });
-                  }}
-                >
-                  <Image source={{ uri: item.avatar }} style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12 }} />
-                  <Text style={{ color: colors.text, fontSize: 16 }}>{item.name}</Text>
-                </TouchableOpacity>
-              )}
-            />
-            <TouchableOpacity onPress={() => setParticipantsModalVisible(false)} style={{ marginTop: 18, alignSelf: 'flex-end' }}>
-              <Text style={{ color: colors.primary, fontSize: 16 }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
