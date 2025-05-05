@@ -10,6 +10,7 @@ export const COLORS = {
   warning: '#F59E0B',
   white: '#FFFFFF',
   black: '#000000',
+  card: '#FFFFFF', // Card background color
 };
 
 export const FONTS = {
