@@ -8,8 +8,7 @@ import { Link, router } from 'expo-router';
 
 export default function SignIn() {
   const { signIn, resetPassword } = useAuth();
-  const [username, setUsername] = useState('');
-  const [walletId, setWalletId] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +17,7 @@ export default function SignIn() {
   const [resetLoading, setResetLoading] = useState(false);
 
   const validateForm = () => {
-    if (!username || !walletId || !password) {
+    if (!usernameOrEmail || !password) {
       setError('Please fill in all fields');
       return false;
     }
@@ -30,7 +29,7 @@ export default function SignIn() {
     try {
       setError('');
       setLoading(true);
-      await signIn(username, walletId, password);
+      await signIn(usernameOrEmail, password);
       router.replace('/(tabs)');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
@@ -70,18 +69,11 @@ export default function SignIn() {
         <View style={styles.form}>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <Input
-            label="Username"
-            placeholder="Enter your username"
+            label="Username or Email"
+            placeholder="Enter your username or email"
             autoCapitalize="none"
-            value={username}
-            onChangeText={setUsername}
-          />
-          <Input
-            label="Wallet ID"
-            placeholder="Enter your Solana wallet ID"
-            autoCapitalize="none"
-            value={walletId}
-            onChangeText={setWalletId}
+            value={usernameOrEmail}
+            onChangeText={setUsernameOrEmail}
           />
           <Input
             label="Password"

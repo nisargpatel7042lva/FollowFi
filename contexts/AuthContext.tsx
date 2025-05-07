@@ -18,7 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  signIn: (username: string, walletId: string, password: string) => Promise<void>;
+  signIn: (usernameOrEmail: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username: string, walletId: string, firstName: string, lastName: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -91,20 +91,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // SIGN IN: Lookup username, check walletId, then sign in with email/password
-  const signIn = async (username: string, walletId: string, password: string) => {
+  // SIGN IN: Lookup by username OR email, then sign in with email/password
+  const signIn = async (usernameOrEmail: string, password: string) => {
     setIsLoading(true);
     try {
-      // Lookup user by username
-      const q = query(collection(db, 'users'), where('username', '==', username));
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) {
-        throw new Error('User not found');
-      }
-      const userDoc = snapshot.docs[0];
-      const userData = userDoc.data();
-      if (userData.walletId !== walletId) {
-        throw new Error('Wallet ID does not match');
+      let userDoc, userData;
+      if (usernameOrEmail.includes('@')) {
+        // Lookup by email
+        const q = query(collection(db, 'users'), where('email', '==', usernameOrEmail));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) throw new Error('User not found');
+        userDoc = snapshot.docs[0];
+        userData = userDoc.data();
+      } else {
+        // Lookup by username
+        const q = query(collection(db, 'users'), where('username', '==', usernameOrEmail));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) throw new Error('User not found');
+        userDoc = snapshot.docs[0];
+        userData = userDoc.data();
       }
       // Sign in with email and password
       const userCredential = await signInWithEmailAndPassword(auth, userData.email, password);

@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, Text, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Animated, TouchableWithoutFeedback, Dimensions, SafeAreaView } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, Text, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Animated, TouchableWithoutFeedback, Dimensions, SafeAreaView, Alert, ScrollView } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
 import { EventRegister } from 'react-native-event-listeners';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
+import { db } from '../../firebaseConfig';
+import { collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc, increment } from 'firebase/firestore';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -169,7 +171,19 @@ const MOCK_POSTS = [
 ];
 
 type Story = { id: string; avatar: string; name: string; isActive: boolean; images: string[] };
-type Post = typeof MOCK_POSTS[number];
+interface Post {
+  id: string;
+  authorId: string;
+  username: string;
+  content: string;
+  likes: number;
+  comments: number;
+  timestamp: number | string;
+  profilePicture: string;
+  image: string;
+  commentList: string[];
+  liked: boolean;
+}
 
 const MOCK_NOTIFICATIONS = [
   { id: '1', type: 'like', text: 'Mark liked your post', time: '2m ago' },
@@ -194,9 +208,10 @@ const FeedScreen = () => {
   const { user } = useAuth();
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
-  const [posts, setPosts] = useState(MOCK_POSTS);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [commentModal, setCommentModal] = useState<{ visible: boolean; postId: string | null }>({ visible: false, postId: null });
   const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState<any[]>([]);
   const [storyModal, setStoryModal] = useState<{ visible: boolean; story: Story | null; index: number }>({ visible: false, story: null, index: 0 });
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -222,7 +237,7 @@ const FeedScreen = () => {
     const DOUBLE_TAP_DELAY = 300;
     if (lastTapRef.current[postId] && now - lastTapRef.current[postId] < DOUBLE_TAP_DELAY) {
       triggerHeartAnimation(postId);
-      handleLike(postId);
+      handleLike(postId, posts.find(p => p.id === postId)?.liked || false);
     }
     lastTapRef.current[postId] = now;
   };
@@ -260,31 +275,63 @@ const FeedScreen = () => {
       .map(({ value }) => value);
   }
 
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setPosts(prev => shuffleArray(prev));
-      setRefreshing(false);
-    }, 1200);
+  // Fetch posts from Firestore
+  const fetchPosts = async () => {
+    try {
+      const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+      const snapshot = await getDocs(q);
+      const postList = snapshot.docs.map(mapDocToPost);
+      setPosts(postList);
+    } catch (err) {
+      // Optionally handle error
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+    const listener = EventRegister.addEventListener('newPost', (newPost: any) => {
+      fetchPosts();
+    });
+    return () => {
+      EventRegister.removeEventListener(String(listener));
+    };
   }, []);
 
-  const handleLike = (postId: string) => {
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchPosts().finally(() => setRefreshing(false));
+  }, []);
+
+  const handleLike = async (postId: string, liked: boolean) => {
     setPosts((prev) => prev.map(post => {
       if (post.id === postId) {
-        const liked = !post.liked;
         return {
           ...post,
-          liked,
-          likes: liked ? post.likes + 1 : post.likes - 1,
+          liked: !liked,
+          likes: !liked ? post.likes + 1 : post.likes - 1,
         };
       }
       return post;
     }));
+    try {
+      const postRef = doc(db, 'posts', postId);
+      await updateDoc(postRef, { likes: increment(!liked ? 1 : -1) });
+    } catch (e) {
+      // Optionally show error or revert UI
+    }
   };
 
-  const handleComment = (postId: string) => {
+  const handleComment = async (postId: string) => {
     setCommentModal({ visible: true, postId });
     setCommentText('');
+    // Fetch comments from Firestore
+    try {
+      const q = query(collection(db, 'posts', postId, 'comments'), orderBy('timestamp', 'desc'));
+      const snapshot = await getDocs(q);
+      setComments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (e) {
+      setComments([]);
+    }
   };
 
   const handleProfile = (username: string) => {
@@ -306,6 +353,7 @@ const FeedScreen = () => {
     }));
     setCommentModal({ visible: false, postId: null });
     setCommentText('');
+    setComments([]);
   };
 
   const handleNextStoryImage = () => {
@@ -324,6 +372,25 @@ const FeedScreen = () => {
     }
   };
 
+  const formatTimestamp = (ts: any) => {
+    if (!ts) return '';
+    if (typeof ts === 'string') return ts;
+    if (ts.seconds) {
+      const date = new Date(ts.seconds * 1000);
+      return date.toLocaleString(); // You can customize this format
+    }
+    return '';
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    try {
+      await deleteDoc(doc(db, 'posts', postId));
+      setPosts((prev) => prev.filter(post => post.id !== postId));
+    } catch (e) {
+      // Optionally show error
+    }
+  };
+
   const renderPost = ({ item }: { item: Post }) => {
     const anim = ensureHeartAnimation(item.id);
     return (
@@ -333,8 +400,23 @@ const FeedScreen = () => {
             <Image source={{ uri: item.profilePicture }} style={styles.avatar} />
             <View>
               <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
-              <Text style={[styles.timestamp, { color: colors.textLight }]}>{item.timestamp}</Text>
+              <Text style={[styles.timestamp, { color: colors.textLight }]}>{formatTimestamp(item.timestamp)}</Text>
             </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ marginLeft: 'auto', padding: 6 }}
+            onPress={() => {
+              if (window.confirm) {
+                if (window.confirm('Delete this post?')) handleDeletePost(item.id);
+              } else {
+                Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Delete', style: 'destructive', onPress: () => handleDeletePost(item.id) },
+                ]);
+              }
+            }}
+          >
+            <FontAwesome name="trash" size={20} color={colors.textLight} />
           </TouchableOpacity>
         </View>
         {item.image && (
@@ -357,7 +439,7 @@ const FeedScreen = () => {
         )}
         <Text style={[styles.content, { color: colors.text }]}>{item.content}</Text>
         <View style={[styles.actions, { borderTopColor: colors.border }]}> 
-          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id, item.liked)}>
             <FontAwesome name={item.liked ? 'heart' : 'heart-o'} size={22} color={item.liked ? colors.primary : colors.text} />
             <Text style={[styles.actionText, { color: colors.text }]}>{item.likes}</Text>
           </TouchableOpacity>
@@ -394,21 +476,11 @@ const FeedScreen = () => {
           chatId: friend.id,
           name: friend.name,
           avatar: friend.avatar,
-          sharedPost: JSON.stringify({ image: selectedPost.image, content: selectedPost.content })
+          sharedPost: JSON.stringify({ image: typeof selectedPost.image === 'string' ? selectedPost.image : '', content: selectedPost.content })
         }
       });
     }
   };
-
-  // Listen for new posts
-  useEffect(() => {
-    const listener = EventRegister.addEventListener('newPost', (newPost: any) => {
-      setPosts(prev => [newPost, ...prev]);
-    });
-    return () => {
-      EventRegister.removeEventListener(String(listener));
-    };
-  }, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -456,6 +528,24 @@ const FeedScreen = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Comments</Text>
+            <ScrollView style={{ maxHeight: 180, marginBottom: 10 }}>
+              {comments.length === 0 ? (
+                <Text style={{ color: colors.textLight, textAlign: 'center', marginVertical: 8 }}>No comments yet.</Text>
+              ) : (
+                comments.map((c) => (
+                  <View key={c.id} style={{ marginBottom: 10 }}>
+                    <Text style={{ color: colors.text, fontWeight: 'bold' }}>{c.authorId || 'User'}</Text>
+                    <Text style={{ color: colors.text }}>{c.content}</Text>
+                    {c.timestamp && (
+                      <Text style={{ color: colors.textLight, fontSize: 12 }}>
+                        {typeof c.timestamp === 'string' ? c.timestamp : (c.timestamp.seconds ? new Date(c.timestamp.seconds * 1000).toLocaleString() : '')}
+                      </Text>
+                    )}
+                  </View>
+                ))
+              )}
+            </ScrollView>
             <Text style={styles.modalTitle}>Add a Comment</Text>
             <TextInput
               style={styles.modalInput}
@@ -860,4 +950,21 @@ const styles = StyleSheet.create({
 });
 
 export default FeedScreen;
+
+function mapDocToPost(doc: any): Post {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    authorId: data.authorId || '',
+    username: data.username || '',
+    content: data.content || '',
+    likes: typeof data.likes === 'number' ? data.likes : 0,
+    comments: typeof data.comments === 'number' ? data.comments : 0,
+    timestamp: data.timestamp || '',
+    profilePicture: data.profilePicture || '',
+    image: data.image || '',
+    commentList: Array.isArray(data.commentList) ? data.commentList : [],
+    liked: typeof data.liked === 'boolean' ? data.liked : false,
+  };
+}
 
