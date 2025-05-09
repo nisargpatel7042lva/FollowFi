@@ -4,7 +4,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { FONTS } from '../../constants/theme';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { EventRegister } from 'react-native-event-listeners';
+import { FontAwesome } from '@expo/vector-icons';
+import { db } from '../../firebaseConfig';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function CreatePostScreen() {
   const { colors } = useTheme();
@@ -36,28 +38,30 @@ export default function CreatePostScreen() {
     }
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!caption.trim() && !image) return;
-    // Create a new post object
-    const newPost = {
-      id: String(Date.now()),
-      username: 'me', // Replace with actual username if available
-      content: caption,
-      likes: 0,
-      comments: 0,
-      timestamp: 'Just now',
-      profilePicture: 'https://randomuser.me/api/portraits/lego/1.jpg', // Replace with actual user avatar
-      image: image || '',
-      commentList: [],
-      liked: false,
-    };
-    // Emit event to update feed
-    EventRegister.emit('newPost', newPost);
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      router.replace('/(tabs)'); // Go to feed
-    }, 1200);
+    try {
+      await addDoc(collection(db, 'posts'), {
+        username: 'me', // Replace with actual username if available
+        content: caption,
+        likes: 0,
+        comments: 0,
+        timestamp: serverTimestamp(),
+        profilePicture: 'https://randomuser.me/api/portraits/lego/1.jpg', // Replace with actual user avatar
+        image: image || '',
+        commentList: [],
+        liked: false,
+      });
+      setShowSuccess(true);
+      setImage(null);
+      setCaption('');
+      setTimeout(() => {
+        setShowSuccess(false);
+        router.replace('/(tabs)');
+      }, 1200);
+    } catch (e) {
+      // Optionally show error
+    }
   };
 
   const styles = StyleSheet.create({
@@ -183,7 +187,27 @@ export default function CreatePostScreen() {
           </TouchableOpacity>
         </View>
         {image && (
-          <Image source={{ uri: image }} style={styles.imagePreview} />
+          <View style={{ position: 'relative', width: '100%', alignItems: 'center' }}>
+            <Image source={{ uri: image }} style={styles.imagePreview} />
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: 14,
+                right: 14,
+                backgroundColor: 'rgba(0,0,0,0.55)',
+                borderRadius: 16,
+                width: 32,
+                height: 32,
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2,
+              }}
+              onPress={() => setImage(null)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <FontAwesome name="close" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
         )}
         <TextInput
           style={styles.captionInput}

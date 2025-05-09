@@ -19,40 +19,39 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [walletId, setWalletId] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const validateForm = () => {
-    if (!email || !password || !username || !confirmPassword) {
+    if (!email || !password || !username || !walletId || !firstName || !lastName || !confirmPassword) {
       setError('Please fill in all fields');
       return false;
     }
-
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return false;
     }
-
     if (password.length < 6) {
       setError('Password must be at least 6 characters long');
       return false;
     }
-
     return true;
   };
 
   const handleSignUp = async () => {
     if (!validateForm()) return;
-
     try {
       setError('');
       setLoading(true);
-      await signUp(email, password, username);
+      await signUp(email, password, username, walletId, firstName, lastName);
+      setLoading(false);
       router.replace('/(tabs)');
-    } catch (err) {
-      setError('Failed to create account');
-    } finally {
+    } catch (err: any) {
+      setError(err.message || 'Failed to create account');
       setLoading(false);
     }
   };
@@ -96,6 +95,30 @@ export default function SignUp() {
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
+          />
+
+          <Input
+            label="Wallet ID"
+            placeholder="Enter your Solana wallet ID"
+            autoCapitalize="none"
+            value={walletId}
+            onChangeText={setWalletId}
+          />
+
+          <Input
+            label="First Name"
+            placeholder="Enter your first name"
+            autoCapitalize="words"
+            value={firstName}
+            onChangeText={setFirstName}
+          />
+
+          <Input
+            label="Last Name"
+            placeholder="Enter your last name"
+            autoCapitalize="words"
+            value={lastName}
+            onChangeText={setLastName}
           />
 
           <Input
